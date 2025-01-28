@@ -38,8 +38,8 @@
 
 #player-image {
   position: absolute;
-  top: -16px; 
-  left: 0;
+  top: -40px; 
+  left: -8px;
   pointer-events: none;
-  width: 32px;
+  width: 48px;
 }

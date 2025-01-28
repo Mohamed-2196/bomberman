@@ -21,16 +21,25 @@
 }
 
 .box {
-  background-color: white;
+  background-color: white; /* Fallback background color */
   width: 60px; /* Larger boxes */
   height: 60px;
+  background-size: cover; /* Ensure the image covers the entire tile */
+  background-position: center; /* Center the image within the tile */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
 }
 
 #player {
   position: absolute;
-  width: 42px;
-  height: 42px;
-  background-color: chartreuse;
-  border: 2px solid black;
+  width: 32px;
+  height: 32px;
   pointer-events: none;
+}
+
+#player-image {
+  position: absolute;
+  top: -16px; 
+  left: 0;
+  pointer-events: none;
+  width: 32px;
 }

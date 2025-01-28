@@ -1,0 +1,45 @@
+* {
+  margin: 0;
+}
+
+#container {
+  display: flex;
+  height: 100dvh;
+  width: 100%;
+  background-color: black;
+  justify-content: center;
+  align-items: center;
+}
+
+#gameContainer {
+  display: grid;
+  height: 960px;
+  width: 960px;
+  justify-content: center;
+  grid-template-columns: repeat(20, 1fr); 
+  grid-template-rows: repeat(20, 1fr); 
+}
+
+.box {
+  background-color: white;
+  width: 48px;
+  height: 48px;
+}
+
+#player {
+  transform: translate(150px, 75px);
+  border: 1px solid black;
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  background-color: chartreuse;
+  top: 65px;
+  left: 1000px;
+}
+
+.test {
+  width: 100px;
+  height: 100px;
+  background-color: bisque;
+  border: 5px solid blue;
+}

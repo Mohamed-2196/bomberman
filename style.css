@@ -34,6 +34,7 @@
   width: 32px;
   height: 32px;
   pointer-events: none;
+  z-index: 2;
 }
 
 #player-image {
@@ -42,4 +43,5 @@
   left: -8px;
   pointer-events: none;
   width: 48px;
+  z-index: 2;
 }

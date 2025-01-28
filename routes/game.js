@@ -10,10 +10,9 @@ export class Game {
     this.playerY = 0;
     this.playerX = 0;
     this.speed = 2;
-    this.lastDirection = 'down'; // Default direction
-    this.currentPlayerImage = ''; // Track the current player image path
+    this.lastDirection = 'down'; 
+    this.currentPlayerImage = ''; 
 
-    // Define image paths for player states
     this.playerImages = {
       up: '../images/whiteplayermovements/movingup.gif',
       down: '../images/whiteplayermovements/movingdown.gif',
@@ -29,6 +28,9 @@ export class Game {
     this.greenWallImage = '../images/walls/iron.png';
     this.breakableWallImage = '../images/walls/wall1.png';
     this.groundImage = '../images/walls/ground.png';
+    this.bombImage = '../images/items/bombplaced.gif';
+    this.activeBombs = new Map();
+    this.playerOnBomb = null; 
   }
 
   bind() {
@@ -70,7 +72,7 @@ export class Game {
       }
 
       const player = document.getElementById('player');
-      const playerImage = document.getElementById('player-image'); // Get the image element
+      const playerImage = document.getElementById('player-image');
       const topleftcorner = document.getElementById('box-18');
       const gameContainerRect = gameContainer.getBoundingClientRect();
       const cornerRect = topleftcorner.getBoundingClientRect();
@@ -92,6 +94,7 @@ export class Game {
           left: rect1.left + dx,
         };
 
+        // Check collision with walls
         for (const wall of walls) {
           const rect2 = wall.getBoundingClientRect();
 
@@ -104,6 +107,23 @@ export class Game {
             return true;
           }
         }
+
+        // Check collision with active bombs
+        for (const [bombId, bombData] of this.activeBombs) {
+          if (!bombData.walkable || bombId !== this.playerOnBomb) {
+            const bombRect = bombData.element.getBoundingClientRect();
+
+            if (
+              nextRect1.top < bombRect.bottom &&
+              nextRect1.right > bombRect.left &&
+              nextRect1.bottom > bombRect.top &&
+              nextRect1.left < bombRect.right
+            ) {
+              return true;
+            }
+          }
+        }
+
         return false;
       };
 
@@ -112,10 +132,9 @@ export class Game {
           ? this.playerImages[this.lastDirection]
           : this.playerImages[`idle${this.lastDirection.charAt(0).toUpperCase() + this.lastDirection.slice(1)}`];
 
-        // Only update the image if it's different from the current image
         if (this.currentPlayerImage !== playerImagePath) {
-          this.currentPlayerImage = playerImagePath; // Update the dummy variable
-          playerImage.src = playerImagePath; // Update the image src
+          this.currentPlayerImage = playerImagePath;
+          playerImage.src = playerImagePath;
         }
       };
 
@@ -148,6 +167,22 @@ export class Game {
             this.playerY += dy;
             player.style.left = `${this.playerX}px`;
             player.style.top = `${this.playerY}px`;
+
+            if (this.playerOnBomb) {
+              const bombData = this.activeBombs.get(this.playerOnBomb);
+              if (bombData) {
+                const bombRect = bombData.element.getBoundingClientRect();
+                const playerRect = player.getBoundingClientRect();
+                if (
+                  playerRect.left >= bombRect.right ||
+                  playerRect.right <= bombRect.left ||
+                  playerRect.top >= bombRect.bottom ||
+                  playerRect.bottom <= bombRect.top
+                ) {
+                  this.playerOnBomb = null;
+                }
+              }
+            }
           }
 
           updatePlayerImage(true);
@@ -162,6 +197,9 @@ export class Game {
         if (['w', 'a', 's', 'd'].includes(event.key)) {
           this.keys[event.key] = true;
         }
+        if (event.code === 'Space') {
+          this.placeBomb();
+        }
       });
 
       this.eventBinding.bindEvent(document, 'keyup', (event) => {
@@ -172,6 +210,45 @@ export class Game {
 
       updatePosition();
     });
+  }
+
+  placeBomb() {
+    const bombX = Math.round(this.playerX / 60) * 60;
+    const bombY = Math.round(this.playerY / 60) * 60;
+    const bombId = `bomb-${bombX}-${bombY}`;
+
+    if (this.activeBombs.has(bombId)) return;
+
+    const bomb = document.createElement('div');
+    bomb.id = bombId;
+    bomb.style.position = 'absolute';
+    bomb.style.left = `${bombX}px`;
+    bomb.style.top = `${bombY}px`;
+    bomb.style.width = '60px';
+    bomb.style.height = '60px';
+    bomb.style.backgroundImage = `url(${this.bombImage})`;
+    bomb.style.backgroundSize = 'cover';
+    bomb.style.zIndex = '1';
+
+    document.getElementById('gameContainer').appendChild(bomb);
+    this.activeBombs.set(bombId, { element: bomb, walkable: true });
+    this.playerOnBomb = bombId;
+
+    setTimeout(() => {
+      if (this.activeBombs.has(bombId)) {
+        this.activeBombs.get(bombId).walkable = false;
+      }
+    }, 1000); // Short delay before the bomb becomes unwalkable
+
+    setTimeout(() => {
+      if (this.activeBombs.has(bombId)) {
+        document.getElementById('gameContainer').removeChild(bomb);
+        this.activeBombs.delete(bombId);
+        if (this.playerOnBomb === bombId) {
+          this.playerOnBomb = null;
+        }
+      }
+    }, 1000);
   }
 
   render() {

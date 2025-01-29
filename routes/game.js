@@ -260,8 +260,8 @@ export class Game {
   }
 
   explodeBomb(bombX, bombY, explosionConfig) {
-    const explosionDuration = 1000; // Duration of the explosion animation in milliseconds
-    const tileSize = 60; // Size of each tile in pixels
+    const explosionDuration = 1000; 
+    const tileSize = 60; 
     const gameContainer = document.getElementById('gameContainer');
   
     // Helper function to create explosion element
@@ -294,7 +294,6 @@ export class Game {
       }
     };
   
-    // Helper function to check if a tile is blocked by a wall
     const isWall = (x, y) => {
       const tileIndex = (y / tileSize) * 17 + (x / tileSize);
       const tile = document.getElementById(`box-${tileIndex}`);
@@ -308,7 +307,6 @@ export class Game {
     // Create center explosion
     createExplosion(bombX, bombY, 'center');
   
-    // Directions: up, down, left, right
     const directions = ['up', 'down', 'left', 'right'];
   
     // Create explosions in each direction
@@ -327,6 +325,7 @@ export class Game {
         const explosionType = i === 1 ? config.nearExplosion : config.farExplosion;
         createExplosion(newX, newY, explosionType);
         if (isbreakableWall(newX, newY)) {
+          // Stop the explosion in this direction after it destroy a wall
           break;
         }
       }

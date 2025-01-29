@@ -14,21 +14,21 @@ export class Game {
     this.currentPlayerImage = '';
 
     this.playerImages = {
-      up: '../images/whiteplayermovements/movingup.gif',
-      down: '../images/whiteplayermovements/movingdown.gif',
-      left: '../images/whiteplayermovements/movingleft.gif',
-      right: '../images/whiteplayermovements/movingright.gif',
-      idleUp: '../images/whiteplayermovements/standingup.png',
-      idleDown: '../images/whiteplayermovements/standingdown.png',
-      idleLeft: '../images/whiteplayermovements/standingleft.png',
-      idleRight: '../images/whiteplayermovements/standingright.png',
+      up: './images/whiteplayermovements/movingup.gif',
+      down: './images/whiteplayermovements/movingdown.gif',
+      left: './images/whiteplayermovements/movingleft.gif',
+      right: './images/whiteplayermovements/movingright.gif',
+      idleUp: './images/whiteplayermovements/standingup.png',
+      idleDown: './images/whiteplayermovements/standingdown.png',
+      idleLeft: './images/whiteplayermovements/standingleft.png',
+      idleRight: './images/whiteplayermovements/standingright.png',
     };
 
-    this.wallImage = '../images/walls/iron.png';
-    this.greenWallImage = '../images/walls/iron.png';
-    this.breakableWallImage = '../images/walls/wall1.png';
-    this.groundImage = '../images/walls/ground.png';
-    this.bombImage = '../images/items/bombplaced.gif';
+    this.wallImage = './images/walls/iron.png';
+    this.greenWallImage = './images/walls/iron.png';
+    this.breakableWallImage = './images/walls/wall1.png';
+    this.groundImage = './images/walls/ground.png';
+    this.bombImage = './images/items/bombplaced.gif';
     this.activeBombs = new Map();
     this.playerOnBomb = null;
   }

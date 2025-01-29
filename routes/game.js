@@ -10,8 +10,8 @@ export class Game {
     this.playerY = 0;
     this.playerX = 0;
     this.speed = 2;
-    this.lastDirection = 'down'; 
-    this.currentPlayerImage = ''; 
+    this.lastDirection = 'down';
+    this.currentPlayerImage = '';
 
     this.playerImages = {
       up: '../images/whiteplayermovements/movingup.gif',
@@ -30,7 +30,7 @@ export class Game {
     this.groundImage = '../images/walls/ground.png';
     this.bombImage = '../images/items/bombplaced.gif';
     this.activeBombs = new Map();
-    this.playerOnBomb = null; 
+    this.playerOnBomb = null;
   }
 
   bind() {
@@ -83,9 +83,8 @@ export class Game {
       player.style.left = `${this.playerX}px`;
       player.style.top = `${this.playerY}px`;
 
-      const walls = document.querySelectorAll('[data-wall="true"]');
 
-      const DetectCollision = (user, walls, dx, dy) => {
+      const DetectCollision = (user, dx, dy) => {
         const rect1 = user.getBoundingClientRect();
         const nextRect1 = {
           top: rect1.top + dy,
@@ -94,7 +93,7 @@ export class Game {
           left: rect1.left + dx,
         };
 
-        // Check collision with walls
+        let walls = document.querySelectorAll('[data-wall="true"]');
         for (const wall of walls) {
           const rect2 = wall.getBoundingClientRect();
 
@@ -112,7 +111,6 @@ export class Game {
         for (const [bombId, bombData] of this.activeBombs) {
           if (!bombData.walkable || bombId !== this.playerOnBomb) {
             const bombRect = bombData.element.getBoundingClientRect();
-
             if (
               nextRect1.top < bombRect.bottom &&
               nextRect1.right > bombRect.left &&
@@ -162,7 +160,7 @@ export class Game {
             this.lastDirection = 'right';
           }
 
-          if (!DetectCollision(player, walls, dx, dy)) {
+          if (!DetectCollision(player, dx, dy)) {
             this.playerX += dx;
             this.playerY += dy;
             player.style.left = `${this.playerX}px`;
@@ -238,7 +236,7 @@ export class Game {
       if (this.activeBombs.has(bombId)) {
         this.activeBombs.get(bombId).walkable = false;
       }
-    }, 1000); // Short delay before the bomb becomes unwalkable
+    }, 1600); // Short delay before the bomb becomes unwalkable
 
     setTimeout(() => {
       if (this.activeBombs.has(bombId)) {
@@ -247,9 +245,105 @@ export class Game {
         if (this.playerOnBomb === bombId) {
           this.playerOnBomb = null;
         }
+        
+        // Define explosion configuration
+        const explosionConfig = {
+          up: { range: 2, nearExplosion: '../images/explosion/up1.gif', farExplosion: '../images/explosion/up2.gif' },
+          down: { range: 2, nearExplosion: '../images/explosion/down1.gif', farExplosion: '../images/explosion/down2.gif' },
+          left: { range: 2, nearExplosion: '../images/explosion/left1.gif', farExplosion: '../images/explosion/left2.gif' },
+          right: { range: 2, nearExplosion: '../images/explosion/right1.gif', farExplosion: '../images/explosion/right2.gif' }
+        };
+  
+        this.explodeBomb(bombX, bombY, explosionConfig);
       }
-    }, 1000);
+    }, 1600);
   }
+
+  explodeBomb(bombX, bombY, explosionConfig) {
+    const explosionDuration = 1000; // Duration of the explosion animation in milliseconds
+    const tileSize = 60; // Size of each tile in pixels
+    const gameContainer = document.getElementById('gameContainer');
+  
+    // Helper function to create explosion element
+    const createExplosion = (x, y, explosionType) => {
+      const tileIndex = (y / tileSize) * 17 + (x / tileSize);
+      const tile = document.getElementById(`box-${tileIndex}`);
+      
+      if (tile) {
+        let explosionGif;
+        if (explosionType === 'center') {
+          explosionGif = '../images/explosion/ceterexp.gif';
+        } else if (tile.dataset.wall === 'true' && tile.dataset.breakable === 'true') {
+          explosionGif = '../images/explosion/destruction.gif';
+        } else if (tile.dataset.wall !== 'true') {
+          explosionGif = explosionType;
+        }
+  
+        if (explosionGif) {
+          tile.style.backgroundImage = `url(${explosionGif})`;
+          setTimeout(() => {
+            if (tile.dataset.wall === 'true' && tile.dataset.breakable === 'true') {
+              tile.style.backgroundImage = `url(${this.groundImage})`;
+              tile.dataset.wall = 'false';
+              tile.dataset.breakable = 'false';
+            } else if (tile.dataset.wall !== 'true') {
+              tile.style.backgroundImage = `url(${this.groundImage})`;
+            }
+          }, explosionDuration);
+        }
+      }
+    };
+  
+    // Helper function to check if a tile is blocked by a wall
+    const isWall = (x, y) => {
+      const tileIndex = (y / tileSize) * 17 + (x / tileSize);
+      const tile = document.getElementById(`box-${tileIndex}`);
+      return tile && tile.dataset.wall === 'true' && tile.dataset.breakable !== 'true';
+    };
+    const isbreakableWall = (x, y) => {
+      const tileIndex = (y / tileSize) * 17 + (x / tileSize);
+      const tile = document.getElementById(`box-${tileIndex}`);
+      return tile && tile.dataset.wall === 'true' && tile.dataset.breakable == 'true';
+    };
+    // Create center explosion
+    createExplosion(bombX, bombY, 'center');
+  
+    // Directions: up, down, left, right
+    const directions = ['up', 'down', 'left', 'right'];
+  
+    // Create explosions in each direction
+    directions.forEach((direction) => {
+      const { dx, dy } = this.getDirectionOffsets(direction);
+      const config = explosionConfig[direction];
+  
+      for (let i = 1; i <= config.range; i++) {
+        const newX = bombX + dx * tileSize * i;
+        const newY = bombY + dy * tileSize * i;
+  
+        if (isWall(newX, newY)) {
+          break; // Stop the explosion in this direction if it hits an unbreakable wall
+        }
+  
+        const explosionType = i === 1 ? config.nearExplosion : config.farExplosion;
+        createExplosion(newX, newY, explosionType);
+        if (isbreakableWall(newX, newY)) {
+          break;
+        }
+      }
+    });
+  }
+  
+  getDirectionOffsets(direction) {
+    const offsets = {
+      up: { dx: 0, dy: -1 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 },
+      right: { dx: 1, dy: 0 }
+    };
+    return offsets[direction];
+  }
+  
+  
 
   render() {
     return `

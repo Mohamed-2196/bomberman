@@ -1,5 +1,8 @@
 export class Player {
-  constructor () {}
+  constructor () {
+    this.lives=3;
+    this.isalive=true;
+  }
 
   render() {
     return `

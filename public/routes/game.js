@@ -80,6 +80,8 @@ export class Game {
       // Initialize player position
       this.playerX = cornerRect.left - gameContainerRect.left + 9;
       this.playerY = cornerRect.top - gameContainerRect.top + 9;
+       this.initx = cornerRect.left - gameContainerRect.left + 9;
+       this.inity = cornerRect.top - gameContainerRect.top + 9;
       player.style.left = `${this.playerX}px`;
       player.style.top = `${this.playerY}px`;
 
@@ -139,7 +141,7 @@ export class Game {
       const updatePosition = () => {
         const moving = this.keys['w'] || this.keys['a'] || this.keys['s'] || this.keys['d'];
 
-        if (moving) {
+        if (moving&&this.player.isalive) {
           let dx = 0;
           let dy = 0;
 
@@ -195,8 +197,10 @@ export class Game {
         if (['w', 'a', 's', 'd'].includes(event.key)) {
           this.keys[event.key] = true;
         }
-        if (event.code === 'Space') {
-          this.placeBomb();
+        if (event.code === 'Space' ) {
+          if (this.player.isalive) {
+            this.placeBomb();
+          }
         }
       });
 
@@ -209,7 +213,18 @@ export class Game {
       updatePosition();
     });
   }
-
+respawnplayer(){
+  setTimeout(() => {
+    this.playerX = this.initx;
+    this.playerY = this.inity;
+    const player = document.getElementById('player');
+    player.style.left = `${this.playerX}px`;
+    player.style.top = `${this.playerY}px`;
+    const playerImage = document.getElementById('player-image');
+    playerImage.src = '../images/whiteplayermovements/standingdown.png';
+    this.player.isalive=true;
+  },1700);
+}
   placeBomb() {
     const bombX = Math.round(this.playerX / 60) * 60;
     const bombY = Math.round(this.playerY / 60) * 60;
@@ -278,7 +293,25 @@ export class Game {
         } else if (tile.dataset.wall !== 'true') {
           explosionGif = explosionType;
         }
-  
+        const tileRect = tile.getBoundingClientRect();
+        const playerRect = player.getBoundingClientRect();
+        if (
+          playerRect.x < tileRect.x + 60 &&
+          playerRect.x + 32 > tileRect.x &&
+          playerRect.y < tileRect.y + 60 &&
+          playerRect.y + 32 > tileRect.y
+        )   {
+console.log(this.player.isalive)
+
+if (this.player.isalive==true) {
+  this.player.lives--;
+this.player.isalive=false;
+const playerImage = document.getElementById('player-image');
+setTimeout(()=>{
+  playerImage.src = '../images/whiteplayermovements/death.gif';},100);
+  this.respawnplayer();
+}
+        }
         if (explosionGif) {
           tile.style.backgroundImage = `url(${explosionGif})`;
           setTimeout(() => {

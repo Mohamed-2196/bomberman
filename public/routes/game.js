@@ -214,16 +214,23 @@ export class Game {
     });
   }
 respawnplayer(){
-  setTimeout(() => {
-    this.playerX = this.initx;
-    this.playerY = this.inity;
-    const player = document.getElementById('player');
-    player.style.left = `${this.playerX}px`;
-    player.style.top = `${this.playerY}px`;
-    const playerImage = document.getElementById('player-image');
-    playerImage.src = '../images/whiteplayermovements/standingdown.png';
-    this.player.isalive=true;
-  },1700);
+  if (this.player.lives <= 0) {
+    setTimeout(() => {alert('Game Over');
+      const player = document.getElementById('player');
+player.remove();
+    }, 500);
+    } else {
+      setTimeout(() => {
+        this.playerX = this.initx;
+        this.playerY = this.inity;
+        const player = document.getElementById('player');
+        player.style.left = `${this.playerX}px`;
+        player.style.top = `${this.playerY}px`;
+        const playerImage = document.getElementById('player-image');
+        playerImage.src = '../images/whiteplayermovements/standingdown.png';
+        this.player.isalive=true;
+      },1700);
+    }
 }
   placeBomb() {
     const bombX = Math.round(this.playerX / 60) * 60;

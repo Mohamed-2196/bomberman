@@ -73,7 +73,7 @@ export class Game {
           boxes[i].style.backgroundImage = `url(${this.breakableWallImage})`
           boxes[i].dataset.wall = 'true'
           boxes[i].dataset.breakable = 'true'
-          if (Math.random() < 0.4) {
+          if (Math.random() < 0.6) {
             const randomNum = Math.floor(Math.random() * 3) + 1
             const powerup = document.createElement('div')
             powerup.id = `powerup-${boxes[i].id}`

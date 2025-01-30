@@ -271,10 +271,10 @@ export class Game {
         if (['w', 'a', 's', 'd'].includes(event.key)) {
           this.keys[event.key] = true
         }
-        // if (event.code === 'Space' ) {
-        //   if (this.player.isalive) {
-        //     this.placeBomb();
-        //   }
+        if (event.code === 'Space'&& this.player.bombs > 0 ) {
+          if (this.player.isalive) {
+            this.placeBomb();
+          }}
         // }
         if (event.key === 'x') {
           if (this.player.isalive && this.player.bombs > 0) {

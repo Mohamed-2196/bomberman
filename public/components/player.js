@@ -1,13 +1,15 @@
 export class Player {
   constructor () {
-    this.lives=3;
-    this.isalive=true;
+    this.speed = 2
+    this.lives = 3
+    this.bombs = 1
+    this.range  = 2
+    this.isalive = true
   }
 
-  render() {
+  render () {
     return `
     <div id="player"></div>
     `
   }
-
 }

@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/reemohamed2/bomberman/issues"
   },
-  "homepage": "https://github.com/reemohamed2/bomberman#readme"
+  "homepage": "https://github.com/reemohamed2/bomberman#readme",
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  }
 }

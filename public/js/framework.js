@@ -14,11 +14,14 @@ export class Framework {
   start () {
     const navigateTo = () => {
       let path = window.location.hash.slice(1)
-      console.log(path)
       if (path === '') {
         // If no hash is present, set the default route
         path = '/'
-        window.location.hash = '#' + path
+        if (this.isInitialLoad) {
+          this.isInitialLoad = false
+          window.location.hash = '#' + path //this will already trigger navigate 
+          return // so we exit here to prevent calling it twice
+        }
       }
       const Component = this.routes[path] || NotFoundComponent
       const appContainer = document.querySelector('#app')
@@ -30,6 +33,7 @@ export class Framework {
         componentInstance.bind()
       }
     }
+     //the logic for assigning the / path to #/ triggers this twice causing two renders
     this.eventBinding.bindEvent(window, 'hashchange', navigateTo)
     navigateTo()
   }

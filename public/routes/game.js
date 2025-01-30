@@ -1,9 +1,12 @@
+import { io } from "/socket.io/socket.io.esm.min.js";
 import { createEffect, createSignal } from '../utils/signal.js'
 import { createEventBinding } from '../utils/eventBinding.js'
 import { Player } from '../components/player.js'
 
 export class Game {
   constructor () {
+    this.socket = io("http://localhost:8080");
+    this.clientId = null;
     this.player = new Player()
     this.eventBinding = createEventBinding()
     this.keys = {}
@@ -40,6 +43,18 @@ export class Game {
 
   bind () {
     createEffect(() => {
+      this.socket.on("connect", () => {
+        console.log("Connected to server");
+      });
+//testing the custom on events
+      this.socket.on("userId", (data) => {
+        this.userId = data.userId;
+        console.log("User ID set successfully: " + this.userId);
+      });
+  
+      this.socket.on("disconnect", () => {
+        console.log("Disconnected from server");
+      });
       const gameContainer = document.getElementById('gameContainer')
 
       // Create 17x17 grid

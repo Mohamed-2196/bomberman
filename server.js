@@ -2,6 +2,7 @@ const http = require("http")
 const fs = require("fs")
 const path = require('path');
 const serveStatic = require('./server/fileServer');
+const { Server } = require("socket.io");
 
 //this takes the absoulte path of the current directory and append it to public , to send the base path
 //for all the static file
@@ -13,3 +14,18 @@ const httpServer = http.createServer((req, res) => {
 });
 
 httpServer.listen(8080, () => console.log("listening on 8080"))
+
+const io = new Server(httpServer, {
+    serveClient: true,
+  });;
+
+io.on("connection", (socket) => {
+    console.log("New connection");
+
+    socket.emit("userId", { userId: socket.id });
+
+    socket.on("disconnect", () => {
+        console.log("Connection closed");
+    });
+
+ });

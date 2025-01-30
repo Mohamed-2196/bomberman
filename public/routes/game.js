@@ -67,8 +67,17 @@ export class Game {
           !(x <= 1 && y <= 1) &&
           i !== 19 &&
           i !== 35 &&
+          i !== 31 &&
+          i !== 32 &&
+          i !== 49 &&
+          i !== 239 &&
+          i !== 253 &&
+          i !== 256 &&
+          i !== 257 &&
+          i !== 269 &&
+          i !== 270 &&
           !(x >= 15 && y >= 15) &&
-          Math.random() < 0.4
+          Math.random() < 0.5
         ) {
           boxes[i].style.backgroundImage = `url(${this.breakableWallImage})`
           boxes[i].dataset.wall = 'true'
@@ -241,7 +250,6 @@ export class Game {
             this.playerY += dy
             player.style.left = `${this.playerX}px`
             player.style.top = `${this.playerY}px`
-
             if (this.playerOnBomb) {
               const bombData = this.activeBombs.get(this.playerOnBomb)
               if (bombData) {

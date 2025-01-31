@@ -4,6 +4,7 @@ export class ChatBox {
     constructor(socket) {
         this.eventBinding = createEventBinding();
         this.socket = socket;
+        this.name = null;
     }
 
     bind() {

@@ -1,12 +1,14 @@
-import { io } from "/socket.io/socket.io.esm.min.js";
+// import { io } from "/socket.io/socket.io.esm.min.js";
 import { createEffect, createSignal } from '../utils/signal.js'
 import { createEventBinding } from '../utils/eventBinding.js'
 import { ChatBox } from "./chatBox.js";
 import { Player } from '../components/player.js'
+import socket  from "../utils/socket.js";
 
 export class Game {
   constructor () {
-    this.socket = io("http://localhost:8080");
+    this.socket = socket;
+    this.name = null;
     this.clientId = null;
     this.player = new Player()
     this.eventBinding = createEventBinding()
@@ -14,7 +16,6 @@ export class Game {
     this.keys = {}
     this.playerY = 0
     this.playerX = 0
-    // this.speed = 2 Have to make speed exclusive to a player
 
     this.lastDirection = 'down'
     this.currentPlayerImage = ''
@@ -93,12 +94,12 @@ export class Game {
         }
         audio.play();
     });
-//testing the custom on events
-      this.socket.on("userId", (data) => {
-        this.userId = data.userId;
-        console.log("User ID set successfully: " + this.userId);
-      });
-  
+      this.socket.emit("isregistered")
+      this.socket.on("notRegistered", () => {
+        window.history.replaceState({}, 'bomber', '#/')
+        window.location.reload(true); //reload the page (yousif fix this tomorrow)
+
+      })
       this.socket.on("disconnect", () => {
         console.log("Disconnected from server");
       });

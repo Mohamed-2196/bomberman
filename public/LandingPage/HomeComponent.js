@@ -1,6 +1,10 @@
 import { createEventBinding } from "../utils/eventBinding.js";
 import { EventEmitter } from "../utils/eventEmitter.js";
+import { Game } from "../routes/game.js";
+import  socket  from "../utils/socket.js";
+import { Framework } from "../js/framework.js";
 
+const app = new Framework();
 class CloudAnimator {
   constructor(leftElement, rightElement, middleElement) {
     this.leftElement = leftElement;
@@ -41,6 +45,7 @@ export class HomeComponent {
     this.playerName = '';
     this.eventEmitter = new EventEmitter();
     this.cloudAnimator = null;
+    this.socket = socket;
   }
 
   render() {
@@ -68,12 +73,17 @@ export class HomeComponent {
     const cloudLeft = document.getElementById('cloudLeft');
     const cloudRight = document.getElementById('cloudRight');
     const cloudMiddle = document.getElementById('cloud');
-
+    this.socket.on('connected', ()=>{
+      window.history.replaceState({}, 'bomber', '#/game')
+      app.route('/game', Game)
+      app.start()
+    }
+    )
     if (startGameButton && playerNameInput) {
       this.eventBinding.bindEvent(startGameButton, 'click', () => {
         this.playerName = playerNameInput.value.trim();
         if (this.playerName) {
-          this.eventEmitter.emit('startGame', this.playerName);
+          this.socket.emit('startGame', this.playerName);
         } else {
           alert('Please enter your name!');
         }

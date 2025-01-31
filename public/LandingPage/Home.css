@@ -5,6 +5,7 @@ body {
     background: linear-gradient(to bottom, #15214e, #2d6ebd); /* Gradient from dark blue to lighter blue */
     color: #001c62;
     font-family: 'Press Start 2P', Arial, sans-serif;
+    overflow: hidden;
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');

@@ -28,6 +28,12 @@ io.on("connection", (socket) => {
     socket.on('chat message' ,(msg) => {
         socket.broadcast.emit('chat message', msg); //brodcast it to everyone but sender
     })
+
+    // Handle incoming audio stream
+    socket.on('audioStream', (audioData) => {
+        socket.broadcast.emit('audioStream', audioData);
+    });
+    
     socket.on("disconnect", () => {
         console.log("Connection closed");
     });

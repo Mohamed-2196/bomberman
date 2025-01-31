@@ -19,11 +19,15 @@ const io = new Server(httpServer, {
     serveClient: true,
   });;
 
+
 io.on("connection", (socket) => {
     console.log("New connection");
 
     socket.emit("userId", { userId: socket.id });
-
+//this sets an event listener for "chat message event"
+    socket.on('chat message' ,(msg) => {
+        socket.broadcast.emit('chat message', msg); //brodcast it to everyone but sender
+    })
     socket.on("disconnect", () => {
         console.log("Connection closed");
     });

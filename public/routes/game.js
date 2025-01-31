@@ -1,6 +1,7 @@
 import { io } from "/socket.io/socket.io.esm.min.js";
 import { createEffect, createSignal } from '../utils/signal.js'
 import { createEventBinding } from '../utils/eventBinding.js'
+import { ChatBox } from "./chatBox.js";
 import { Player } from '../components/player.js'
 
 export class Game {
@@ -9,6 +10,7 @@ export class Game {
     this.clientId = null;
     this.player = new Player()
     this.eventBinding = createEventBinding()
+    this.chat = new ChatBox(this.socket);
     this.keys = {}
     this.playerY = 0
     this.playerX = 0
@@ -130,6 +132,13 @@ export class Game {
           boxes[i].style.backgroundImage = `url(${this.groundImage})`
         }
       }
+
+     // Render the game and chat
+//document.getElementById('app').innerHTML = this.render();
+
+// Initialize chat
+this.chat.bind();
+this.chat.listenForMessages();
 
       const player = document.getElementById('player')
       const playerImage = document.getElementById('player-image')
@@ -526,15 +535,18 @@ export class Game {
     return offsets[direction]
   }
 
-  render () {
+  render() {
     return `
-      <div id="container">
-        <div id="gameContainer">
-          <div id="player">
-            <img id="player-image" src="../images/whiteplayermovements/standingdown.png" />
+       <div id="game-wrapper">
+          <div id="gameContainer">
+             <div id="player">
+                <img id="player-image" src="../images/whiteplayermovements/standingdown.png" />
+             </div>
           </div>
-        </div>
-      </div>
-    `
-  }
+          <div id="chat-container">
+             ${this.chat.render()} <!-- Render the chat box here -->
+          </div>
+       </div>
+    `;
+ }
 }

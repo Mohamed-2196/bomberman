@@ -56,7 +56,7 @@ export class Game {
             audioChunks.push(event.data);
         });
 
-        madiaRecorder.addEventListener("stop", function () {
+        madiaRecorder.addEventListener("stop",  ()=> {
             var audioBlob = new Blob(audioChunks);
             audioChunks = [];
             var fileReader = new FileReader();

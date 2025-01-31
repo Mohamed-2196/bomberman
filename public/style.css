@@ -69,10 +69,9 @@ body {
   /* filter: hue-rotate(90deg); first appropriate color */
     /* filter: hue-rotate(190deg); second appropriate color */
     /* filter: hue-rotate(300deg); third appropriate color */
-    /* filter: hue-rotate(300deg); 4th appropriate color */
     /* filter: grayscale(1); 5th appropriate color */
     /* filter: opacity(0.5) grayscale(1);  GHOST????*/
-    
+    /* filter: hue-rotate(300deg); */
 }
 
 .chat-box {

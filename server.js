@@ -69,9 +69,10 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("playerMoved",  (key) => {
+    socket.on("playerMoved",  (key, x, y) => {
         const player = gameState.players.find(player => player.id === socket.id);
-        
+        player.xPos = x;
+        player.yPos = y;
         if (player) {
             switch (key.toLowerCase()) {
                 case "w":
@@ -94,9 +95,10 @@ io.on("connection", (socket) => {
         }
     })
 
-    socket.on("playerStop", (key, obj) => {
+    socket.on("playerStop", (key, x,y) => {
         const player = gameState.players.find(player => player.id === socket.id);
-
+        player.xPos = x;
+        player.yPos = y;
         if (player) {            
             switch (key.toLowerCase()) {
                 case "w":
@@ -114,8 +116,6 @@ io.on("connection", (socket) => {
                 default:
                     break;
             }
-            
-         
             }
             
             io.emit("stoppedMoving", player )
@@ -129,9 +129,9 @@ io.on("connection", (socket) => {
             console.log("Not registered");
             socket.emit("notRegistered", { userId: socket.id });
         } else {
-            io.emit("GameState", { gameState });
-            console.log(22);
-            
+            socket.broadcast.emit("GameState", { gameState });
+            const playernumber = gameState.players.find(p => p.id === socket.id).number;
+            socket.emit("GameState", { gameState,playernumber });
             // socket.broadcast.emit("GameState", { gameState });
         }
     });

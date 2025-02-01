@@ -8,9 +8,7 @@ import {PlayerManager}  from "../components/playermanagaer.js";
 export class Game {
   static count = 0
   constructor () {
-    Game.count++
     
-    console.log(Game.count++, "XXX");
     
     this.socket = socket;
     this.name = null;
@@ -23,7 +21,7 @@ export class Game {
     this.lastDirection = 'down'
     this.currentPlayerImage = ''
     this.mapcompelted = false;
-
+  this.playernumber = null;
 
     this.wallImage = './images/walls/iron.png'
     this.greenWallImage = './images/walls/iron.png'
@@ -92,7 +90,6 @@ export class Game {
     // });
 
     this.socket.on("playerMoved", (player) => {
-      console.log(player, "HEY");
       
       this.playermanager.updatePlayer(player.movedPlayer);
     });
@@ -103,7 +100,7 @@ export class Game {
    
 
       this.socket.emit("isRegistered")
-      this.socket.on("GameState", (gameState) => {
+      this.socket.on("GameState", (gameState, playernumber) => {
         this.playermanager.players.forEach(player =>{
 
           if(!(gameState.gameState.players.includes(player))) {
@@ -117,7 +114,9 @@ export class Game {
           this.renderMap(gameState)
           this.mapcompelted = true;
         }
-        console.log(gameState.gameState.players.length);
+        if(this.playernumber === null){
+          this.playernumber = gameState.playernumber;
+        }
         
         gameState.gameState.players.forEach((theplayer) => {
           
@@ -129,7 +128,6 @@ export class Game {
         });
         const gameContainer = document.getElementById("gameContainer");
         gameContainer.appendChild(this.playermanager.renderPlayers());
-        console.log(11);
         
       });
       this.socket.on("notRegistered", () => {
@@ -342,15 +340,18 @@ this.chat.listenForMessages();
 
       
       this.eventBinding.bindEvent(document, 'keydown', event => {
+        this.playerX = parseFloat(document.getElementById(`player-${this.playernumber}`).style.left) ;
+        this.playerY = parseFloat(document.getElementById(`player-${this.playernumber}`).style.top) ;
         if (['w', 'a', 's', 'd'].includes(event.key)) {
-          socket.emit('playerMoved', event.key )
+          socket.emit('playerMoved', event.key, this.playerX, this.playerY )
           }
       })
 
       this.eventBinding.bindEvent(document, 'keyup', event => {
+        this.playerX = parseFloat(document.getElementById(`player-${this.playernumber}`).style.left) ;
+        this.playerY = parseFloat(document.getElementById(`player-${this.playernumber}`).style.top) ;
         if (['w', 'a', 's', 'd'].includes(event.key)) {
-          
-          socket.emit('playerStop', event.key,  this.playermanager.getPlayerState())
+          socket.emit('playerStop', event.key,this.playerX, this.playerY )
           }
       })
     })

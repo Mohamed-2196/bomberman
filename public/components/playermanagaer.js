@@ -23,7 +23,6 @@ export class PlayerManager {
   
     renderPlayers() {
         const fragment = document.createDocumentFragment(); // Create a document fragment
-      console.log(99);
       
         this.players.forEach(player => {
           const playerElement = document.createElement('div'); // Create a new div for each player

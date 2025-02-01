@@ -16,7 +16,6 @@ export class Framework {
   start () {
     
     const navigateTo = () => {
-      console.log(this.routes, "Hi");
       let path = window.location.hash.slice(1)
       if (path === '') {
         // If no hash is present, set the default route

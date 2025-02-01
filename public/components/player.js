@@ -83,18 +83,15 @@ export class Player {
         const playerNum = document.getElementById(`player-${this.number}`)
         
 
-
-        
-
-
         if (!DetectCollision(playerNum, dx, dy)) {
           this.xPos += dx
           this.yPos += dy
-          
+
           playerNum.style.left = `${this.xPos}px`
           playerNum.style.top = `${this.yPos}px`
         } else {
-          console.log("collision")
+          console.log('collision');
+          
         }
 
         // Call requestAnimationFrame again

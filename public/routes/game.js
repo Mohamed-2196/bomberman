@@ -4,19 +4,17 @@ import { createEventBinding } from '../utils/eventBinding.js'
 import { ChatBox } from "./chatBox.js";
 import { Player } from '../components/player.js'
 import socket  from "../utils/socket.js";
-
+import {PlayerManager}  from "../components/playermanagaer.js";
 export class Game {
   constructor () {
     this.socket = socket;
     this.name = null;
     this.clientId = null;
-    this.player = new Player()
     this.eventBinding = createEventBinding()
+    this.playermanager = new PlayerManager();
     this.chat = new ChatBox(this.socket);
     this.keys = {}
-    this.playerY = 0
-    this.playerX = 0
-
+    this.players = createSignal([])
     this.lastDirection = 'down'
     this.currentPlayerImage = ''
 
@@ -94,7 +92,17 @@ export class Game {
         }
         audio.play();
     });
-      this.socket.emit("isregistered")
+      this.socket.emit("isRegistered")
+      this.socket.on("GameState", (gameState) => {
+        this.renderMap(gameState)
+        gameState.gameState.players.forEach((theplayer) => {
+          let player = new Player(theplayer.number, theplayer.x, theplayer.y);
+          this.playermanager.addPlayer(player);
+
+        });
+        const gameContainer = document.getElementById("gameContainer");
+        gameContainer.appendChild(this.playermanager.renderPlayers());
+      });
       this.socket.on("notRegistered", () => {
         window.history.replaceState({}, 'bomber', '#/')
         window.location.reload(true); //reload the page (yousif fix this tomorrow)
@@ -105,7 +113,6 @@ export class Game {
       });
       const gameContainer = document.getElementById('gameContainer')
 
-      // Create 17x17 grid
       for (let i = 0; i < 17 * 17; i++) {
         const square = document.createElement('div')
         square.className = 'box'
@@ -113,261 +120,195 @@ export class Game {
         gameContainer.appendChild(square)
       }
 
-      const boxes = document.querySelectorAll('.box')
 
-      // Set up walls, ground, and other elements
-      for (let i = 0; i < 289; i++) {
-        const x = i % 17
-        const y = Math.floor(i / 17)
-
-        if (x === 0 || x === 16 || y === 0 || y === 16) {
-          boxes[i].style.backgroundImage = `url(${this.wallImage})`
-          boxes[i].dataset.wall = 'true'
-        } else if (x % 2 === 0 && y % 2 === 0) {
-          boxes[i].style.backgroundImage = `url(${this.greenWallImage})`
-          boxes[i].dataset.wall = 'true'
-        } else if (
-          !(x <= 1 && y <= 1) &&
-          i !== 19 &&
-          i !== 35 &&
-          i !== 31 &&
-          i !== 32 &&
-          i !== 49 &&
-          i !== 239 &&
-          i !== 253 &&
-          i !== 256 &&
-          i !== 257 &&
-          i !== 269 &&
-          i !== 270 &&
-          !(x >= 15 && y >= 15) &&
-          Math.random() < 0.5
-        ) {
-          boxes[i].style.backgroundImage = `url(${this.breakableWallImage})`
-          boxes[i].dataset.wall = 'true'
-          boxes[i].dataset.breakable = 'true'
-          if (Math.random() < 0.6) {
-            const randomNum = Math.floor(Math.random() * 3) + 1
-            const powerup = document.createElement('div')
-            powerup.id = `powerup-${boxes[i].id}`
-            powerup.style.left = `${x * 60}px`
-            powerup.style.top = `${y * 60}px`
-            powerup.style.width = '60px'
-            powerup.style.height = '60px'
-            powerup.style.position = 'absolute'
-            powerup.style.zIndex = '-1'
-
-            if (randomNum === 1) {
-              powerup.dataset.powerName = 'bombs'
-              // powerup.style.backgroundColor = 'red'
-              powerup.style.backgroundImage = `url(${this.bombsImage})`
-              powerup.style.backgroundSize = 'cover'
-            } else if (randomNum === 2) {
-              powerup.dataset.powerName = 'speed'
-              // powerup.style.backgroundColor = 'blue'
-              powerup.style.backgroundImage = `url(${this.speedImage})`
-              powerup.style.backgroundSize = 'cover'
-            } else {
-              powerup.dataset.powerName = 'flames'
-              // powerup.style.backgroundColor = 'orange'
-              powerup.style.backgroundImage = `url(${this.flamesImage})`
-              powerup.style.backgroundSize = 'cover'
-            }
-            gameContainer.appendChild(powerup)
-          }
-        } else {
-          boxes[i].style.backgroundImage = `url(${this.groundImage})`
-        }
-      }
-
-     // Render the game and chat
-//document.getElementById('app').innerHTML = this.render();
-
+    
 // Initialize chat
 this.chat.bind();
 this.chat.listenForMessages();
 
-      const player = document.getElementById('player')
-      const playerImage = document.getElementById('player-image')
-      const topleftcorner = document.getElementById('box-18')
-      const gameContainerRect = gameContainer.getBoundingClientRect()
-      const cornerRect = topleftcorner.getBoundingClientRect()
+      // const player = document.getElementById('player')
+      // const playerImage = document.getElementById('player-image')
+      // const topleftcorner = document.getElementById('box-256')
+      // const gameContainerRect = gameContainer.getBoundingClientRect()
+      // const cornerRect = topleftcorner.getBoundingClientRect()
 
       // Initialize player position
-      this.playerX = cornerRect.left - gameContainerRect.left + 9
-      this.playerY = cornerRect.top - gameContainerRect.top + 9
-      this.initx = cornerRect.left - gameContainerRect.left + 9
-      this.inity = cornerRect.top - gameContainerRect.top + 9
-      player.style.left = `${this.playerX}px`
-      player.style.top = `${this.playerY}px`
+      // this.playerX = cornerRect.left - gameContainerRect.left + 9
+      // this.playerY = cornerRect.top - gameContainerRect.top + 9
+      // this.initx = cornerRect.left - gameContainerRect.left + 9
+      // this.inity = cornerRect.top - gameContainerRect.top + 9
+      // console.log(this.playerX, this.playerY)
+      // player.style.left = `${this.playerX}px`
+      // player.style.top = `${this.playerY}px`
 
-      const DetectCollision = (user, dx, dy) => {
-        const rect1 = user.getBoundingClientRect()
-        const nextRect1 = {
-          top: rect1.top + dy,
-          right: rect1.right + dx,
-          bottom: rect1.bottom + dy,
-          left: rect1.left + dx
-        }
+      // const DetectCollision = (user, dx, dy) => {
+      //   const rect1 = user.getBoundingClientRect()
+      //   const nextRect1 = {
+      //     top: rect1.top + dy,
+      //     right: rect1.right + dx,
+      //     bottom: rect1.bottom + dy,
+      //     left: rect1.left + dx
+      //   }
 
-        let walls = document.querySelectorAll('[data-wall="true"]')
-        for (const wall of walls) {
-          const rect2 = wall.getBoundingClientRect()
+      //   let walls = document.querySelectorAll('[data-wall="true"]')
+      //   for (const wall of walls) {
+      //     const rect2 = wall.getBoundingClientRect()
 
-          if (
-            nextRect1.top < rect2.bottom &&
-            nextRect1.right > rect2.left &&
-            nextRect1.bottom > rect2.top &&
-            nextRect1.left < rect2.right
-          ) {
-            return true
-          }
-        }
+      //     if (
+      //       nextRect1.top < rect2.bottom &&
+      //       nextRect1.right > rect2.left &&
+      //       nextRect1.bottom > rect2.top &&
+      //       nextRect1.left < rect2.right
+      //     ) {
+      //       return true
+      //     }
+      //   }
 
-        // Check collision with active bombs
-        for (const [bombId, bombData] of this.activeBombs) {
-          if (!bombData.walkable || bombId !== this.playerOnBomb) {
-            const bombRect = bombData.element.getBoundingClientRect()
-            if (
-              nextRect1.top < bombRect.bottom &&
-              nextRect1.right > bombRect.left &&
-              nextRect1.bottom > bombRect.top &&
-              nextRect1.left < bombRect.right
-            ) {
-              return true
-            }
-          }
-        }
+      //   // Check collision with active bombs
+      //   for (const [bombId, bombData] of this.activeBombs) {
+      //     if (!bombData.walkable || bombId !== this.playerOnBomb) {
+      //       const bombRect = bombData.element.getBoundingClientRect()
+      //       if (
+      //         nextRect1.top < bombRect.bottom &&
+      //         nextRect1.right > bombRect.left &&
+      //         nextRect1.bottom > bombRect.top &&
+      //         nextRect1.left < bombRect.right
+      //       ) {
+      //         return true
+      //       }
+      //     }
+      //   }
 
-        // Check collision with powerups
-        for (const powerup of this.availablePowerUps) {
-          const powerupRect = powerup.getBoundingClientRect()
-          if (
-            nextRect1.top < powerupRect.bottom &&
-            nextRect1.right > powerupRect.left &&
-            nextRect1.bottom > powerupRect.top &&
-            nextRect1.left < powerupRect.right
-          ) {
-            const powerupName = powerup.getAttribute('data-power-name')
-            if (powerupName === 'bombs') {
-              this.player.bombs++
-              this.availablePowerUps = this.availablePowerUps.filter(
-                pwr => pwr !== powerup
-              )
-            } else if (powerupName === 'speed') {
-              this.player.speed += 0.2
-              this.availablePowerUps = this.availablePowerUps.filter(
-                pwr => pwr !== powerup
-              )
-            } else if (powerupName === 'flames') {
-              this.player.range++
-              this.availablePowerUps = this.availablePowerUps.filter(
-                pwr => pwr !== powerup
-              )
-            }
+      //   // Check collision with powerups
+      //   for (const powerup of this.availablePowerUps) {
+      //     const powerupRect = powerup.getBoundingClientRect()
+      //     if (
+      //       nextRect1.top < powerupRect.bottom &&
+      //       nextRect1.right > powerupRect.left &&
+      //       nextRect1.bottom > powerupRect.top &&
+      //       nextRect1.left < powerupRect.right
+      //     ) {
+      //       const powerupName = powerup.getAttribute('data-power-name')
+      //       if (powerupName === 'bombs') {
+      //         this.player.bombs++
+      //         this.availablePowerUps = this.availablePowerUps.filter(
+      //           pwr => pwr !== powerup
+      //         )
+      //       } else if (powerupName === 'speed') {
+      //         this.player.speed += 0.2
+      //         this.availablePowerUps = this.availablePowerUps.filter(
+      //           pwr => pwr !== powerup
+      //         )
+      //       } else if (powerupName === 'flames') {
+      //         this.player.range++
+      //         this.availablePowerUps = this.availablePowerUps.filter(
+      //           pwr => pwr !== powerup
+      //         )
+      //       }
 
-            gameContainer.removeChild(powerup)
+      //       gameContainer.removeChild(powerup)
 
-            return true
-          }
-        }
+      //       return true
+      //     }
+      //   }
 
-        return false
-      }
+      //   return false
+      // }
 
-      const updatePlayerImage = moving => {
-        const playerImagePath = moving
-          ? this.playerImages[this.lastDirection]
-          : this.playerImages[
-              `idle${
-                this.lastDirection.charAt(0).toUpperCase() +
-                this.lastDirection.slice(1)
-              }`
-            ]
+      // const updatePlayerImage = moving => {
+      //   const playerImagePath = moving
+      //     ? this.playerImages[this.lastDirection]
+      //     : this.playerImages[
+      //         `idle${
+      //           this.lastDirection.charAt(0).toUpperCase() +
+      //           this.lastDirection.slice(1)
+      //         }`
+      //       ]
 
-        if (this.currentPlayerImage !== playerImagePath) {
-          this.currentPlayerImage = playerImagePath
-          playerImage.src = playerImagePath
-        }
-      }
+      //   if (this.currentPlayerImage !== playerImagePath) {
+      //     this.currentPlayerImage = playerImagePath
+      //     playerImage.src = playerImagePath
+      //   }
+      // }
 
-      const updatePosition = () => {
-        const moving =
-          this.keys['w'] || this.keys['a'] || this.keys['s'] || this.keys['d']
+      // const updatePosition = () => {
+      //   const moving =
+      //     this.keys['w'] || this.keys['a'] || this.keys['s'] || this.keys['d']
 
-        if (moving && this.player.isalive) {
-          let dx = 0
-          let dy = 0
+      //   if (moving && this.player.isalive) {
+      //     let dx = 0
+      //     let dy = 0
 
-          if (this.keys['w']) {
-            dy = -this.player.speed
-            this.lastDirection = 'up'
-          }
-          if (this.keys['s']) {
-            dy = this.player.speed
-            this.lastDirection = 'down'
-          }
-          if (this.keys['a']) {
-            dx = -this.player.speed
-            this.lastDirection = 'left'
-          }
-          if (this.keys['d']) {
-            dx = this.player.speed
-            this.lastDirection = 'right'
-          }
+      //     if (this.keys['w']) {
+      //       dy = -this.player.speed
+      //       this.lastDirection = 'up'
+      //     }
+      //     if (this.keys['s']) {
+      //       dy = this.player.speed
+      //       this.lastDirection = 'down'
+      //     }
+      //     if (this.keys['a']) {
+      //       dx = -this.player.speed
+      //       this.lastDirection = 'left'
+      //     }
+      //     if (this.keys['d']) {
+      //       dx = this.player.speed
+      //       this.lastDirection = 'right'
+      //     }
 
-          if (!DetectCollision(player, dx, dy)) {
-            this.playerX += dx
-            this.playerY += dy
-            player.style.left = `${this.playerX}px`
-            player.style.top = `${this.playerY}px`
-            if (this.playerOnBomb) {
-              const bombData = this.activeBombs.get(this.playerOnBomb)
-              if (bombData) {
-                const bombRect = bombData.element.getBoundingClientRect()
-                const playerRect = player.getBoundingClientRect()
-                if (
-                  playerRect.left >= bombRect.right ||
-                  playerRect.right <= bombRect.left ||
-                  playerRect.top >= bombRect.bottom ||
-                  playerRect.bottom <= bombRect.top
-                ) {
-                  this.playerOnBomb = null
-                }
-              }
-            }
-          }
+      //     if (!DetectCollision(player, dx, dy)) {
+      //       this.playerX += dx
+      //       this.playerY += dy
+      //       player.style.left = `${this.playerX}px`
+      //       player.style.top = `${this.playerY}px`
+      //       if (this.playerOnBomb) {
+      //         const bombData = this.activeBombs.get(this.playerOnBomb)
+      //         if (bombData) {
+      //           const bombRect = bombData.element.getBoundingClientRect()
+      //           const playerRect = player.getBoundingClientRect()
+      //           if (
+      //             playerRect.left >= bombRect.right ||
+      //             playerRect.right <= bombRect.left ||
+      //             playerRect.top >= bombRect.bottom ||
+      //             playerRect.bottom <= bombRect.top
+      //           ) {
+      //             this.playerOnBomb = null
+      //           }
+      //         }
+      //       }
+      //     }
 
-          updatePlayerImage(true)
-        } else {
-          updatePlayerImage(false)
-        }
+      //     updatePlayerImage(true)
+      //   } else {
+      //     updatePlayerImage(false)
+      //   }
 
-        requestAnimationFrame(updatePosition)
-      }
+      //   requestAnimationFrame(updatePosition)
+      // }
 
-      this.eventBinding.bindEvent(document, 'keydown', event => {
-        if (['w', 'a', 's', 'd'].includes(event.key)) {
-          this.keys[event.key] = true
-        }
-        if (event.code === 'Space'&& this.player.bombs > 0 ) {
-          if (this.player.isalive) {
-            this.placeBomb();
-          }}
-        // }
-        if (event.key === 'x') {
-          if (this.player.isalive && this.player.bombs > 0) {
-            this.placeBomb()
-          }
-        }
-      })
+      // this.eventBinding.bindEvent(document, 'keydown', event => {
+      //   if (['w', 'a', 's', 'd'].includes(event.key)) {
+      //     this.keys[event.key] = true
+      //   }
+      //   if (event.code === 'Space'&& this.player.bombs > 0 ) {
+      //     if (this.player.isalive) {
+      //       this.placeBomb();
+      //     }}
+      //   // }
+      //   if (event.key === 'x') {
+      //     if (this.player.isalive && this.player.bombs > 0) {
+      //       this.placeBomb()
+      //     }
+      //   }
+      // })
 
-      this.eventBinding.bindEvent(document, 'keyup', event => {
-        if (['w', 'a', 's', 'd'].includes(event.key)) {
-          this.keys[event.key] = false
-        }
-      })
+      // this.eventBinding.bindEvent(document, 'keyup', event => {
+      //   if (['w', 'a', 's', 'd'].includes(event.key)) {
+      //     this.keys[event.key] = false
+      //   }
+      // })
 
-      updatePosition()
+      // updatePosition()
     })
   }
   respawnplayer () {
@@ -580,14 +521,65 @@ this.chat.listenForMessages();
     }
     return offsets[direction]
   }
+    renderMap  (gameState){
+      console.log(gameState)
+    const boxes = document.querySelectorAll('.box');
+    const gameContainer = document.getElementById('gameContainer');
+
+    gameState.gameState.walls.forEach((wall, i) => {
+        const x = i % 17;
+        const y = Math.floor(i / 17);
+        const box = boxes[i];
+        switch(wall.type) {
+            case 'wall':
+                box.style.backgroundImage = `url(${this.wallImage})`;
+                box.dataset.wall = 'true';
+                if (x % 2 === 0 && y % 2 === 0) {
+                    box.style.backgroundImage = `url(${this.greenWallImage})`;
+                }
+                break;
+            case 'block':
+                box.style.backgroundImage = `url(${this.breakableWallImage})`;
+                box.dataset.wall = 'true';
+                box.dataset.breakable = 'true';
+                if (wall.powerup) {
+                    const powerup = document.createElement('div');
+                    powerup.id = `powerup-${box.id}`;
+                    powerup.style.left = `${x * 60}px`;
+                    powerup.style.top = `${y * 60}px`;
+                    powerup.style.width = '60px';
+                    powerup.style.height = '60px';
+                    powerup.style.position = 'absolute';
+                    powerup.style.zIndex = '-1';
+                    powerup.dataset.powerName = wall.powerup.type;
+                    
+                    switch(wall.powerup.type) {
+                        case 'bombs':
+                            powerup.style.backgroundImage = `url(${this.bombsImage})`;
+                            break;
+                        case 'speed':
+                            powerup.style.backgroundImage = `url(${this.speedImage})`;
+                            break;
+                        case 'flames':
+                            powerup.style.backgroundImage = `url(${this.flamesImage})`;
+                            break;
+                    }
+                    powerup.style.backgroundSize = 'cover';
+                    gameContainer.appendChild(powerup);
+                }
+                break;
+            default:
+                box.style.backgroundImage = `url(${this.groundImage})`;
+                break;
+        }
+    });
+}
+
 
   render() {
     return `
        <div id="game-wrapper">
           <div id="gameContainer">
-             <div id="player">
-                <img id="player-image" src="../images/whiteplayermovements/standingdown.png" />
-             </div>
           </div>
           <div id="chat-container">
              ${this.chat.render()} <!-- Render the chat box here -->

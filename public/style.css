@@ -51,7 +51,7 @@ body {
   background-repeat: no-repeat;
 }
 
-#player {
+#player-1 {
   position: absolute;
   width: 32px;
   height: 32px;
@@ -59,7 +59,7 @@ body {
   z-index: 2;
 }
 
-#player-image {
+#player-1-image {
   position: absolute;
   top: -40px; 
   left: -8px;
@@ -73,7 +73,70 @@ body {
     /* filter: opacity(0.5) grayscale(1);  GHOST????*/
     /* filter: hue-rotate(300deg); */
 }
+#player-2 {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  z-index: 2;
+}
 
+#player-2-image {
+  position: absolute;
+  top: -40px; 
+  left: -8px;
+  pointer-events: none;
+  width: 48px;
+  z-index: 2;
+  filter: hue-rotate(90deg); 
+    /* filter: hue-rotate(190deg); second appropriate color */
+    /* filter: hue-rotate(300deg); third appropriate color */
+    /* filter: grayscale(1); 5th appropriate color */
+    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
+    /* filter: hue-rotate(300deg); */
+}#player-3 {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#player-3-image {
+  position: absolute;
+  top: -40px; 
+  left: -8px;
+  pointer-events: none;
+  width: 48px;
+  z-index: 2;
+  /* filter: hue-rotate(90deg); first appropriate color */
+    filter: hue-rotate(190deg);
+    /* filter: hue-rotate(300deg); third appropriate color */
+    /* filter: grayscale(1); 5th appropriate color */
+    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
+    /* filter: hue-rotate(300deg); */
+}#player-4 {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#player-4-image {
+  position: absolute;
+  top: -40px; 
+  left: -8px;
+  pointer-events: none;
+  width: 48px;
+  z-index: 2;
+  /* filter: hue-rotate(90deg); first appropriate color */
+    /* filter: hue-rotate(190deg); second appropriate color */
+    filter: hue-rotate(300deg); 
+    /* filter: grayscale(1); 5th appropriate color */
+    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
+    /* filter: hue-rotate(300deg); */
+}
 .chat-box {
   width: 100%;
   height: 100%;

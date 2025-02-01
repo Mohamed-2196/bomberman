@@ -66,12 +66,7 @@ body {
   pointer-events: none;
   width: 48px;
   z-index: 2;
-  /* filter: hue-rotate(90deg); first appropriate color */
-    /* filter: hue-rotate(190deg); second appropriate color */
-    /* filter: hue-rotate(300deg); third appropriate color */
-    /* filter: grayscale(1); 5th appropriate color */
-    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
-    /* filter: hue-rotate(300deg); */
+
 }
 #player-2 {
   position: absolute;
@@ -89,11 +84,7 @@ body {
   width: 48px;
   z-index: 2;
   filter: hue-rotate(90deg); 
-    /* filter: hue-rotate(190deg); second appropriate color */
-    /* filter: hue-rotate(300deg); third appropriate color */
-    /* filter: grayscale(1); 5th appropriate color */
-    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
-    /* filter: hue-rotate(300deg); */
+
 }#player-3 {
   position: absolute;
   width: 32px;
@@ -109,12 +100,8 @@ body {
   pointer-events: none;
   width: 48px;
   z-index: 2;
-  /* filter: hue-rotate(90deg); first appropriate color */
     filter: hue-rotate(190deg);
-    /* filter: hue-rotate(300deg); third appropriate color */
-    /* filter: grayscale(1); 5th appropriate color */
-    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
-    /* filter: hue-rotate(300deg); */
+
 }#player-4 {
   position: absolute;
   width: 32px;
@@ -130,12 +117,9 @@ body {
   pointer-events: none;
   width: 48px;
   z-index: 2;
-  /* filter: hue-rotate(90deg); first appropriate color */
-    /* filter: hue-rotate(190deg); second appropriate color */
+
     filter: hue-rotate(300deg); 
-    /* filter: grayscale(1); 5th appropriate color */
-    /* filter: opacity(0.5) grayscale(1);  GHOST????*/
-    /* filter: hue-rotate(300deg); */
+
 }
 .chat-box {
   width: 100%;

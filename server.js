@@ -1,4 +1,3 @@
-// server.js
 const http = require("http");
 const fs = require("fs");
 const path = require('path');
@@ -19,9 +18,9 @@ const io = new Server(httpServer, {
 let gameState = {
     players: [],
     walls: [],
-    bombs: [], 
+    bombs: [],
+    explosions: [], 
 };
-
 let users = {};
 
 io.on("connection", handleSocketConnection);
@@ -33,6 +32,9 @@ function handleSocketConnection(socket) {
 
     socket.on('startGame', handlePlayerJoin);
     socket.on("playerMoved", handlePlayerMovement);
+    socket.on('placeBomb', () => {
+        handlePlaceBomb(socket.id);
+    });
     socket.on("playerStop", handlePlayerStop);
     socket.on("isRegistered", handleIsRegistered);
     socket.on("disconnect", handlePlayerDisconnect);
@@ -137,7 +139,6 @@ const FRAME_RATE = 250;
 const FRAME_DURATION = 1000 / FRAME_RATE;
 
 
-
 setInterval(() => {
     movePlayers(); // Update player positions
     explodeBombs(); // Handle bomb explosions
@@ -154,7 +155,6 @@ function movePlayers() {
         if (player.left) dx -= speed;
         if (player.right) dx += speed;
 
-        // Check for collisions before updating position
         if (!checkCollision(player.xPos + dx, player.yPos + dy)) {
             player.xPos += dx;
             player.yPos += dy;
@@ -168,29 +168,26 @@ function movePlayers() {
     }
 }
 function checkCollision(playerX, playerY) {
-    // Define the player's bounding box
     const playerLeft = playerX;
     const playerTop = playerY;
-    const playerRight = playerX + 32; // Player width is 32px
-    const playerBottom = playerY + 32; // Player height is 32px
+    const playerRight = playerX + 32; 
+    const playerBottom = playerY + 32; 
 
-    // Convert player position to grid coordinates
-    const gridX1 = Math.floor(playerLeft / 60); // Top-left grid cell
+    const gridX1 = Math.floor(playerLeft / 60);
     const gridY1 = Math.floor(playerTop / 60);
-    const gridX2 = Math.floor(playerRight / 60); // Bottom-right grid cell
+    const gridX2 = Math.floor(playerRight / 60); 
     const gridY2 = Math.floor(playerBottom / 60);
 
-    // Check all grid cells covered by the player's bounding box
     for (let x = gridX1; x <= gridX2; x++) {
         for (let y = gridY1; y <= gridY2; y++) {
-            const wallIndex = y * 17 + x; // Calculate the wall index
+            const wallIndex = y * 17 + x;
             if (gameState.walls[wallIndex]?.type !== 'empty') {
-                return true; // Collision detected
+                return true; 
             }
         }
     }
 
-    return false; // No collision
+    return false; // No collihision
 }
 
 function handleIsRegistered() {
@@ -267,73 +264,71 @@ function handlePlaceBomb(playerId) {
     const bombX = Math.floor(player.xPos / tileSize) * tileSize;
     const bombY = Math.floor(player.yPos / tileSize) * tileSize;
 
-    // Check if a bomb already exists at this position
     if (gameState.bombs.some(bomb => bomb.x === bombX && bomb.y === bombY)) return;
 
-    // Create a new bomb
     const bomb = {
-        id: `bomb-${Date.now()}-${Math.random()}`, // Unique ID for the bomb
+        id: `bomb-${Date.now()}-${Math.random()}`, 
         x: bombX,
         y: bombY,
         ownerId: playerId,
-        range: player.flames, // Explosion range depends on player's flame power-up
-        placedAt: Date.now(), // Timestamp for when the bomb was placed
+        range: player.flames, 
+        placedAt: Date.now(), 
     };
 
-    // Add the bomb to the game state
     gameState.bombs.push(bomb);
-    player.bombsPlaced++; // Increment the number of bombs placed by the player
+    player.bombsPlaced++; 
 
-    // Broadcast the updated game state
+    console.log("Bomb placed:", bomb);
+
     io.emit("GameState", { gameState });
 }
 
-const BOMB_LIFETIME = 3000; // Time before a bomb explodes (in milliseconds)
-
-function explodeBombs() {
-    const now = Date.now();
-
-    // Filter out bombs that have expired
-    gameState.bombs = gameState.bombs.filter(bomb => {
-        if (now - bomb.placedAt < BOMB_LIFETIME) return true; // Keep unexploded bombs
-
-        // Explode the bomb
-        explodeBomb(bomb);
-
-        // Decrement the player's bombsPlaced counter
-        const player = gameState.players.find(p => p.id === bomb.ownerId);
-        if (player) player.bombsPlaced--;
-
-        return false; // Remove the bomb from the game state
-    });
-}
 function explodeBomb(bomb) {
     const tileSize = 60;
 
-    // Helper function to calculate explosion range in a direction
-    function explodeDirection(dx, dy, range) {
-        for (let i = 1; i <= range; i++) {
+    const explosionConfig = {
+        up: {
+            range: bomb.range,
+            nearExplosion: '../images/explosion/up1.gif',
+            farExplosion: '../images/explosion/up2.gif',
+        },
+        down: {
+            range: bomb.range,
+            nearExplosion: '../images/explosion/down1.gif',
+            farExplosion: '../images/explosion/down2.gif',
+        },
+        left: {
+            range: bomb.range,
+            nearExplosion: '../images/explosion/left1.gif',
+            farExplosion: '../images/explosion/left2.gif',
+        },
+        right: {
+            range: bomb.range,
+            nearExplosion: '../images/explosion/right1.gif',
+            farExplosion: '../images/explosion/right2.gif',
+        },
+    };
+
+    function explodeDirection(dx, dy, config) {
+        for (let i = 1; i <= config.range; i++) {
             const x = bomb.x + dx * tileSize * i;
             const y = bomb.y + dy * tileSize * i;
 
-            // Check if the tile is out of bounds
             if (x < 0 || x >= 17 * tileSize || y < 0 || y >= 17 * tileSize) break;
 
             const wallIndex = (y / tileSize) * 17 + (x / tileSize);
             const wall = gameState.walls[wallIndex];
 
             if (wall.type === 'wall') {
-                break; // Stop explosion at unbreakable walls
+                break; 
             } else if (wall.type === 'block') {
                 if (wall.powerup) {
-                    // Spawn power-up if the block has one
                     wall.powerup = null;
                 }
-                wall.type = 'empty'; // Destroy the breakable wall
-                break; // Stop explosion after destroying a block
+                wall.type = 'empty';
+                break;
             }
 
-            // Damage players in the explosion range
             gameState.players.forEach(player => {
                 if (
                     player.isAlive &&
@@ -348,28 +343,49 @@ function explodeBomb(bomb) {
                     }
                 }
             });
+
+            // Add explosion to the game state
+            const explosionType = i === config.range ? config.farExplosion : config.nearExplosion;
+            gameState.explosions.push({
+                id: `explosion-${Date.now()}-${Math.random()}`,
+                x,
+                y,
+                type: explosionType,
+                placedAt: Date.now(),
+            });
         }
     }
 
-    // Explode in all four directions
-    explodeDirection(0, -1, bomb.range); // Up
-    explodeDirection(0, 1, bomb.range);  // Down
-    explodeDirection(-1, 0, bomb.range); // Left
-    explodeDirection(1, 0, bomb.range);  // Right
+    explodeDirection(0, -1, explosionConfig.up);
+    explodeDirection(0, 1, explosionConfig.down);
+    explodeDirection(-1, 0, explosionConfig.left);
+    explodeDirection(1, 0, explosionConfig.right);
 
-    // Center explosion
-    gameState.players.forEach(player => {
-        if (
-            player.isAlive &&
-            player.xPos >= bomb.x &&
-            player.xPos < bomb.x + tileSize &&
-            player.yPos >= bomb.y &&
-            player.yPos < bomb.y + tileSize
-        ) {
-            player.lives--;
-            if (player.lives <= 0) {
-                player.isAlive = false;
-            }
-        }
+    gameState.explosions.push({
+        id: `explosion-${Date.now()}-${Math.random()}`,
+        x: bomb.x,
+        y: bomb.y,
+        type: '../images/explosion/ceterexp.gif',
+        placedAt: Date.now(),
+    });
+
+    // Remove explosions after a short delay (e.g., 1 second)
+    setTimeout(() => {
+        gameState.explosions = gameState.explosions.filter(e => e.id !== bomb.id);
+        io.emit("GameState", { gameState }); // Broadcast updated game state
+    }, 1000);
+}
+const BOMB_LIFETIME = 3000; // Time before a bomb explodes (in milliseconds)
+function explodeBombs() {
+    const now = Date.now();
+    // Filter out bombs that have expired
+    gameState.bombs = gameState.bombs.filter(bomb => {
+        if (now - bomb.placedAt < BOMB_LIFETIME) return true; // Keep unexploded bombs
+        // Explode the bomb
+        explodeBomb(bomb);
+        // Decrement the player's bombsPlaced counter
+        const player = gameState.players.find(p => p.id === bomb.ownerId);
+        if (player) player.bombsPlaced--;
+        return false; // Remove the bomb from the game state
     });
 }

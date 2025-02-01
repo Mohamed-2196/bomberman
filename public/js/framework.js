@@ -1,10 +1,12 @@
 import { NotFoundComponent } from '../routes/notfound.js'
 import { createEventBinding } from '../utils/eventBinding.js'
+// import { Game } from '../routes/game.js'
 
 export class Framework {
   constructor () {
     this.routes = {}
     this.eventBinding = createEventBinding()
+    this.counter = 0
   }
 
   route (path, component) {
@@ -12,7 +14,9 @@ export class Framework {
   }
 
   start () {
+    
     const navigateTo = () => {
+      console.log(this.routes, "Hi");
       let path = window.location.hash.slice(1)
       if (path === '') {
         // If no hash is present, set the default route
@@ -24,6 +28,7 @@ export class Framework {
         }
       }
       const Component = this.routes[path] || NotFoundComponent
+
       const appContainer = document.querySelector('#app')
 
       const componentInstance = new Component()

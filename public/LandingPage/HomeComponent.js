@@ -73,10 +73,8 @@ export class HomeComponent {
     const cloudLeft = document.getElementById('cloudLeft');
     const cloudRight = document.getElementById('cloudRight');
     const cloudMiddle = document.getElementById('cloud');
-    this.socket.on('connected', ()=>{
-      window.history.replaceState({}, 'bomber', '#/game')
-      app.route('/game', Game)
-      app.start()
+    this.socket.on('connected', ()=> {
+      window.location.href = '#/game'
     }
     )
     if (startGameButton && playerNameInput) {

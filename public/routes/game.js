@@ -6,7 +6,12 @@ import { Player } from '../components/player.js'
 import socket  from "../utils/socket.js";
 import {PlayerManager}  from "../components/playermanagaer.js";
 export class Game {
+  static count = 0
   constructor () {
+    Game.count++
+    
+    console.log(Game.count++, "XXX");
+    
     this.socket = socket;
     this.name = null;
     this.clientId = null;
@@ -17,17 +22,8 @@ export class Game {
     this.players = createSignal([])
     this.lastDirection = 'down'
     this.currentPlayerImage = ''
+    this.mapcompelted = false;
 
-    this.playerImages = {
-      up: './images/whiteplayermovements/movingup.gif',
-      down: './images/whiteplayermovements/movingdown.gif',
-      left: './images/whiteplayermovements/movingleft.gif',
-      right: './images/whiteplayermovements/movingright.gif',
-      idleUp: './images/whiteplayermovements/standingup.png',
-      idleDown: './images/whiteplayermovements/standingdown.png',
-      idleLeft: './images/whiteplayermovements/standingleft.png',
-      idleRight: './images/whiteplayermovements/standingright.png'
-    }
 
     this.wallImage = './images/walls/iron.png'
     this.greenWallImage = './images/walls/iron.png'
@@ -44,72 +40,105 @@ export class Game {
 
   bind () {
     createEffect(() => {
-      this.socket.on("connect", () => {
-        console.log("Connected to server");
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-    .then((stream) => {
-        var madiaRecorder = new MediaRecorder(stream);
-        var audioChunks = [];
+      // this.socket.on("connect", () => {
+      //   console.log("Connected to server");
+    //     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    // .then((stream) => {
+    //     var madiaRecorder = new MediaRecorder(stream);
+    //     var audioChunks = [];
 
-        madiaRecorder.addEventListener("dataavailable", function (event) {
-            audioChunks.push(event.data);
-        });
+    //     madiaRecorder.addEventListener("dataavailable", function (event) {
+    //         audioChunks.push(event.data);
+    //     });
 
-        madiaRecorder.addEventListener("stop",  ()=> {
-            var audioBlob = new Blob(audioChunks);
-            audioChunks = [];
-            var fileReader = new FileReader();
-            fileReader.readAsDataURL(audioBlob);
-            fileReader.onloadend = () => {
-              var base64String = fileReader.result;
-              this.socket.emit("audioStream", base64String);
-          };
+    //     madiaRecorder.addEventListener("stop",  ()=> {
+    //         var audioBlob = new Blob(audioChunks);
+    //         audioChunks = [];
+    //         var fileReader = new FileReader();
+    //         fileReader.readAsDataURL(audioBlob);
+    //         fileReader.onloadend = () => {
+    //           var base64String = fileReader.result;
+    //           this.socket.emit("audioStream", base64String);
+    //       };
 
-            madiaRecorder.start();
-            setTimeout(function () {
-                madiaRecorder.stop();
-            }, 1000);
-        });
+    //         madiaRecorder.start();
+    //         setTimeout(function () {
+    //             madiaRecorder.stop();
+    //         }, 1000);
+    //     });
 
-        madiaRecorder.start();
-        setTimeout(function () {
-            madiaRecorder.stop();
-        }, 1000);
-    })
-    .catch((error) => {
-        console.error('Error capturing audio.', error);
-    });
-      });
+    //     madiaRecorder.start();
+    //     setTimeout(function () {
+    //         madiaRecorder.stop();
+    //     }, 1000);
+    // })
+    // .catch((error) => {
+    //     console.error('Error capturing audio.', error);
+    // });
+      // });
 
-      this.socket.on('audioStream', (audioData) => {
-        var newData = audioData.split(";");
-        newData[0] = "data:audio/ogg;";
-        newData = newData[0] + newData[1];
+    //   this.socket.on('audioStream', (audioData) => {
+
+    //     var newData = audioData.split(";");
+    //     newData[0] = "data:audio/ogg;";
+    //     newData = newData[0] + newData[1];
     
-        var audio = new Audio(newData);
-        if (!audio || document.hidden) {
-            return;
-        }
-        audio.play();
+    //     var audio = new Audio(newData);
+    //     if (!audio || document.hidden) {
+    //         return;
+    //     }
+    //     console.log(audio)
+    //     audio.play();
+    // });
+
+    this.socket.on("playerMoved", (player) => {
+      console.log(player, "HEY");
+      
+      this.playermanager.updatePlayer(player.movedPlayer);
     });
+
+    this.socket.on("stoppedMoving", (player) => {
+      this.playermanager.updatePlayer(player);
+    })
+   
+
       this.socket.emit("isRegistered")
       this.socket.on("GameState", (gameState) => {
-        this.renderMap(gameState)
+        this.playermanager.players.forEach(player =>{
+
+          if(!(gameState.gameState.players.includes(player))) {
+            document.getElementById(`player-${player.number}`).remove();
+            this.playermanager.players = this.playermanager.players.filter(p => p.number !== player.number);
+            console.log("wowoowowowo");
+          }
+
+        })
+        if(!this.mapcompelted){
+          this.renderMap(gameState)
+          this.mapcompelted = true;
+        }
+        console.log(gameState.gameState.players.length);
+        
         gameState.gameState.players.forEach((theplayer) => {
-          let player = new Player(theplayer.number, theplayer.x, theplayer.y);
+          
+          let player = new Player(theplayer.number, theplayer.xPos, theplayer.yPos);
+          console.log("i am new");
+          
           this.playermanager.addPlayer(player);
 
         });
         const gameContainer = document.getElementById("gameContainer");
         gameContainer.appendChild(this.playermanager.renderPlayers());
+        console.log(11);
+        
       });
       this.socket.on("notRegistered", () => {
-        window.history.replaceState({}, 'bomber', '#/')
-        window.location.reload(true); //reload the page (yousif fix this tomorrow)
-
+        window.location.href = '#/'
+        window.location.reload();
       })
       this.socket.on("disconnect", () => {
         console.log("Disconnected from server");
+        
       });
       const gameContainer = document.getElementById('gameContainer')
 
@@ -217,7 +246,7 @@ this.chat.listenForMessages();
 
       // const updatePlayerImage = moving => {
       //   const playerImagePath = moving
-      //     ? this.playerImages[this.lastDirection]
+          // ? this.playerImages[this.lastDirection]
       //     : this.playerImages[
       //         `idle${
       //           this.lastDirection.charAt(0).toUpperCase() +
@@ -309,6 +338,21 @@ this.chat.listenForMessages();
       // })
 
       // updatePosition()
+
+
+      
+      this.eventBinding.bindEvent(document, 'keydown', event => {
+        if (['w', 'a', 's', 'd'].includes(event.key)) {
+          socket.emit('playerMoved', event.key )
+          }
+      })
+
+      this.eventBinding.bindEvent(document, 'keyup', event => {
+        if (['w', 'a', 's', 'd'].includes(event.key)) {
+          
+          socket.emit('playerStop', event.key,  this.playermanager.getPlayerState())
+          }
+      })
     })
   }
   respawnplayer () {

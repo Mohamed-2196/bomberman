@@ -105,6 +105,9 @@ function startGameCountdown() {
 
     countdownTimer = setInterval(() => {
         countdown--;
+        if(gameState.players.length == 4&& countdown>=10){
+            countdown=10
+        }
         io.emit("countdown", countdown);
 
         if (countdown <= 0) {

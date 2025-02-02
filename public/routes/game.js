@@ -44,10 +44,8 @@ export class Game {
                 window.location.href = '#/';
                 window.location.reload();
             });
-            this.socket.on("connect", () => {
-                console.log("Connected to server");
                 navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-            .then((stream) => {
+                .then((stream) => {
                 var madiaRecorder = new MediaRecorder(stream);
                 var audioChunks = [];
         
@@ -79,7 +77,6 @@ export class Game {
             .catch((error) => {
                 console.error('Error capturing audio.', error);
             });
-              });
         
               this.socket.on('audioStream', (audioData) => {
                 var newData = audioData.split(";");

@@ -32,6 +32,7 @@ export class Game {
         this.activeBombs = new Map();
         this.availablePowerUps = [];
         this.playerOnBomb = null;
+        this.indexStates= [];
     }
 
     bind() {
@@ -173,7 +174,9 @@ export class Game {
                         box.dataset.wall = 'false';
                         box.dataset.breakable = 'false';
                         wall.isBurned = false; // Reset burned state
-                    }, 1000);} else {                        
+                    }, 1000);} else if (wall.powerup=="bombs"||wall.powerup=="speed"||wall.powerup=="flames") {
+                        box.style.backgroundImage = `url(${this.getPowerupImage(wall.powerup)})`;
+                    }else {                        
                         box.style.backgroundImage = `url(${this.groundImage})`;
                         box.dataset.wall = 'false';
                         box.dataset.breakable = 'false';
@@ -188,25 +191,33 @@ export class Game {
         }
     });
 }
+
+getPowerupImage(powerupType) {
+    switch (powerupType) {
+        case 'bombs':
+            return './images/items/multibombs.png';
+        case 'speed':
+            return './images/items/speed.png';
+        case 'flames':
+            return './images/items/flames.png';
+    }
+}
 renderBombs(gameState) {
-  const gameContainer = document.getElementById('gameContainer');
-
-  document.querySelectorAll('.bomb').forEach(bomb => bomb.remove());
-
-  gameState.gameState.bombs.forEach(bomb => {
-      const bombElement = document.createElement('div');
-      bombElement.className = 'bomb';
-      bombElement.style.position = 'absolute';
-      bombElement.style.left = `${bomb.x}px`;
-      bombElement.style.top = `${bomb.y}px`;
-      bombElement.style.width = '60px';
-      bombElement.style.height = '60px';
-      bombElement.style.backgroundImage = `url(${this.bombImage})`;
-      bombElement.style.backgroundSize = 'cover';
-      bombElement.style.zIndex = '1';
-
-      gameContainer.appendChild(bombElement);
-  });
+    const gameContainer = document.getElementById('gameContainer');
+    document.querySelectorAll('.bomb').forEach(bomb => bomb.remove());
+    gameState.gameState.bombs.forEach(bomb => {
+        const bombElement = document.createElement('div');
+        bombElement.className = 'bomb';
+        bombElement.style.position = 'absolute';
+        bombElement.style.left = `${bomb.x}px`;
+        bombElement.style.top = `${bomb.y}px`;
+        bombElement.style.width = '60px';
+        bombElement.style.height = '60px';
+        bombElement.style.backgroundImage = `url(${this.bombImage})`;
+        bombElement.style.backgroundSize = 'cover';
+        bombElement.style.zIndex = '1';
+        gameContainer.appendChild(bombElement);
+    });
 }
 
 handleExplosions(gameState) {
@@ -222,7 +233,7 @@ handleExplosions(gameState) {
         explosionElement.style.height = '60px';
         explosionElement.style.backgroundImage = `url(${explosion.type})`;
         explosionElement.style.backgroundSize = 'cover';
-        explosionElement.style.zIndex = '2';
+        explosionElement.style.zIndex = '1';
         gameContainer.appendChild(explosionElement);
         setTimeout(() => {
       explosionElement.remove();

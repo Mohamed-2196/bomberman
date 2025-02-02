@@ -37,6 +37,9 @@ function handleSocketConnection(socket) {
     socket.on('placeBomb', () => {
         handlePlaceBomb(socket.id);
     });
+    socket.on('audioStream', (audioData) => {
+        socket.broadcast.emit('audioStream', audioData);
+    });
     socket.on("playerStop", handlePlayerStop);
     socket.on("isRegistered", handleIsRegistered);
     socket.on("disconnect", handlePlayerDisconnect);

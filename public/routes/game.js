@@ -44,7 +44,54 @@ export class Game {
                 window.location.href = '#/';
                 window.location.reload();
             });
-
+            this.socket.on("connect", () => {
+                console.log("Connected to server");
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then((stream) => {
+                var madiaRecorder = new MediaRecorder(stream);
+                var audioChunks = [];
+        
+                madiaRecorder.addEventListener("dataavailable", function (event) {
+                    audioChunks.push(event.data);
+                });
+        
+                madiaRecorder.addEventListener("stop",  ()=> {
+                    var audioBlob = new Blob(audioChunks);
+                    audioChunks = [];
+                    var fileReader = new FileReader();
+                    fileReader.readAsDataURL(audioBlob);
+                    fileReader.onloadend = () => {
+                      var base64String = fileReader.result;
+                      this.socket.emit("audioStream", base64String);
+                  };
+        
+                    madiaRecorder.start();
+                    setTimeout(function () {
+                        madiaRecorder.stop();
+                    }, 1000);
+                });
+        
+                madiaRecorder.start();
+                setTimeout(function () {
+                    madiaRecorder.stop();
+                }, 1000);
+            })
+            .catch((error) => {
+                console.error('Error capturing audio.', error);
+            });
+              });
+        
+              this.socket.on('audioStream', (audioData) => {
+                var newData = audioData.split(";");
+                newData[0] = "data:audio/ogg;";
+                newData = newData[0] + newData[1];
+        
+                var audio = new Audio(newData);
+                if (!audio || document.hidden) {
+                    return;
+                }
+                audio.play();
+            });
             this.socket.on("GameState", (gameState, playernumber) => {
                 this.handleGameState(gameState, playernumber);
             });

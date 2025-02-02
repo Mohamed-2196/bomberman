@@ -176,10 +176,11 @@ setInterval(() => {
     movePlayers();
     explodeBombs();
 
-    const alivePlayers = gameState.players.filter(player => player.isAlive);
-    if (alivePlayers.length <= 1 && gameState.gameStarted) {
+    const playersWithLivesZero = gameState.players.filter(player => player.lives === 0);
+    if (playersWithLivesZero.length >= gameState.players.length - 1 && gameState.gameStarted) {
+        
         gameState.gameStarted = false;
-        io.emit("gameOver", alivePlayers.length === 1 ? alivePlayers[0].name : null);
+        io.emit("gameOver", playersWithLivesZero.length === 1 ? playersWithLivesZero[0].name : null);
     } else {
         io.emit("GameState", { gameState });
     }

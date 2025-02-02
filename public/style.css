@@ -203,3 +203,37 @@ button {
 button:hover {
   background: #ff3300;
 }
+/* Footer Styling */
+#footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50px; /* Adjust height as needed */
+  background: rgba(0, 0, 0, 0.7); /* Dark background with transparency */
+  border-top: 2px solid rgba(255, 204, 0, 0.6); /* Subtle glowing border */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px; /* Add some padding */
+  box-shadow: 0 -5px 15px rgba(255, 204, 0, 0.3); /* Subtle glow effect */
+  z-index: 3; /* Ensure it stays above other elements */
+}
+
+#countdown {
+  font-size: 18px;
+  color: #ffcc00; /* Bright yellow text for countdown */
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255, 204, 0, 0.8); /* Glow effect for text */
+}
+
+#player-lives {
+  display: flex;
+  gap: 20px; /* Space between player lives */
+}
+
+#player-lives div {
+  font-size: 16px;
+  color: white; /* White text for player lives */
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.6); /* Glow effect for text */
+}

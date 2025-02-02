@@ -33,6 +33,7 @@ export class Game {
         this.availablePowerUps = [];
         this.playerOnBomb = null;
         this.indexStates= [];
+        this.gameStarted = false;
     }
 
     bind() {
@@ -59,7 +60,35 @@ export class Game {
             this.socket.on("disconnect", () => {
                 console.log("Disconnected from server");
             });
+            this.socket.on("countdown", (countdown) => {
+                const countdownElement = document.getElementById('countdown');
+                if (countdownElement) { 
+                    if (countdown > 0) {
+                        countdownElement.textContent = `Game starts in ${countdown} seconds...`;
+                    } else {
+                        countdownElement.textContent = 'Game started!';
+                    }
+                }
+            });
+            
+            this.socket.on("gameStarted", () => {
+                this.gameStarted = true; 
+                const countdownElement = document.getElementById('countdown');
+                countdownElement.textContent = ''; 
+            });
 
+            this.socket.on("gameOver", (winnerName) => {
+                const gameOverMessage = winnerName 
+                    ? `Game Over! ${winnerName} wins! Redirecting to home page in 5 seconds...`
+                    : 'Game Over! No winner. Redirecting to home page in 5 seconds...';
+                
+                alert(gameOverMessage);
+            
+                setTimeout(() => {
+                    window.location.href = '#/';
+                    window.location.reload();
+                }, 5000);
+            });
             const gameContainer = document.getElementById('gameContainer');
             for (let i = 0; i < 17 * 17; i++) {
                 const square = document.createElement('div');
@@ -69,13 +98,15 @@ export class Game {
             }
 
             this.eventBinding.bindEvent(document, 'keydown', event => {
-              if (['w', 'a', 's', 'd'].includes(event.key)) {
-                  this.socket.emit('playerMoved', event.key);
-              }
-              if ((event.code === 'Space' || event.key === 'x') ) {                
-                  this.socket.emit('placeBomb');
-              }
-          });
+                if (!this.gameStarted) return;
+            
+                if (['w', 'a', 's', 'd'].includes(event.key)) {
+                    this.socket.emit('playerMoved', event.key);
+                }
+                if ((event.code === 'Space' || event.key === 'x')) {    
+                    this.socket.emit('placeBomb');
+                }
+            });
 
             this.eventBinding.bindEvent(document, 'keyup', event => {
                 if (['w', 'a', 's', 'd'].includes(event.key)) {
@@ -89,68 +120,61 @@ export class Game {
     }
 
     handleGameState(gameState, playernumber) {
-      if (!this.mapCompleted) {
-        this.renderMap(gameState);
-        this.mapCompleted = true;
-    } else {
-        this.renderMap(gameState); // Update walls dynamically
-    }
-      this.renderBombs(gameState); // Ensure bombs are rendered
-      this.handleExplosions(gameState);
-
-      if (this.playernumber === null) {
-          this.playernumber = playernumber;
-      }
-  
-      // Remove players who are no longer in the game state
-      this.playerManager.players.forEach(player => {
-          if (!gameState.gameState.players.some(serverPlayer => serverPlayer.number === player.number)) {
-              const playerElement = document.getElementById(`player-${player.number}`);
-              if (playerElement) {
-                  playerElement.remove(); // Remove the player element from the DOM
-              }
-              this.playerManager.removePlayer(player.number); // Remove the player from the manager
-          }
-      });
-  
-      // Add or update players based on the server's game state
-      gameState.gameState.players.forEach(serverPlayer => {
-          const player = this.playerManager.getPlayer(serverPlayer.number);
-          if (player) {
-              player.copyPropertiesFrom(serverPlayer); // Update existing player
-          } else {
-              const newPlayer = new Player(serverPlayer.number, serverPlayer.xPos, serverPlayer.yPos);
-              this.playerManager.addPlayer(newPlayer); // Add new player
-          }
-      });
-  
-      // Render players
-      const gameContainer = document.getElementById("gameContainer");
-      gameContainer.appendChild(this.playerManager.renderPlayers());
-      gameState.gameState.explosions.forEach(explosion => {
-        const player = gameState.gameState.players.find(p => p.id === this.clientId);
-        if (player) {
-        if (
-            player.isAlive &&
-            player.xPos >= explosion.x &&
-            player.xPos < explosion.x + 60 &&
-            player.yPos >= explosion.y &&
-            player.yPos < explosion.y + 60
-        ) {
-            player.lives--;
-            if (player.lives <= 0) {
-            player.isAlive = false;
-            if (!player.isAlive) {
+        if (!this.mapCompleted) {
+            this.renderMap(gameState);
+            this.mapCompleted = true;
+        } else {
+            this.renderMap(gameState); 
+        }
+    
+        this.renderBombs(gameState); // Ensure bombs are rendered
+        this.handleExplosions(gameState);
+    
+        if (this.playernumber === null) {
+            this.playernumber = playernumber;
+        }
+    
+        this.playerManager.players.forEach(player => {
+            if (!gameState.gameState.players.some(serverPlayer => serverPlayer.number === player.number)) {
                 const playerElement = document.getElementById(`player-${player.number}`);
                 if (playerElement) {
-                playerElement.style.backgroundImage = `url(../images/whiteplayermovements/death.gif)`;
+                    playerElement.remove(); 
                 }
+                this.playerManager.removePlayer(player.number); 
             }
+        });
+    
+        gameState.gameState.players.forEach(serverPlayer => {
+            const player = this.playerManager.getPlayer(serverPlayer.number);
+            if (player) {
+                player.copyPropertiesFrom(serverPlayer);
+    
+                const playerElement = document.getElementById(`player-${serverPlayer.number}`);
+                if (playerElement) {
+                    if (!serverPlayer.isAlive) {
+                        playerElement.style.backgroundImage = `url(../images/whiteplayermovements/death.gif)`;
+                    } else {
+                        player.updateImage(); 
+                    }
+                }
+            } else {
+                const newPlayer = new Player(serverPlayer.number, serverPlayer.xPos, serverPlayer.yPos);
+                this.playerManager.addPlayer(newPlayer); //
             }
-        }
-        }
+        });
+        const playerLivesElement = document.getElementById('player-lives');
+    playerLivesElement.innerHTML = ''; 
+
+    gameState.gameState.players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.textContent = `${player.name}: ${player.lives} lives left`;
+        playerLivesElement.appendChild(playerDiv);
     });
-  }
+    
+        // Render players
+        const gameContainer = document.getElementById("gameContainer");
+        gameContainer.appendChild(this.playerManager.renderPlayers());
+    }
 
   renderMap(gameState) {
     const boxes = document.querySelectorAll('.box');
@@ -173,7 +197,7 @@ export class Game {
                         box.style.backgroundImage = `url(${this.groundImage})`;
                         box.dataset.wall = 'false';
                         box.dataset.breakable = 'false';
-                        wall.isBurned = false; // Reset burned state
+                        wall.isBurned = false; 
                     }, 1000);} else if (wall.powerup=="bombs"||wall.powerup=="speed"||wall.powerup=="flames") {
                         box.style.backgroundImage = `url(${this.getPowerupImage(wall.powerup)})`;
                     }else {                        
@@ -249,6 +273,10 @@ handleExplosions(gameState) {
             <div id="chat-container">
                ${this.chat.render()} <!-- Render the chat box here -->
             </div>
+<div id="footer">
+    <div id="countdown"></div>
+    <div id="player-lives"></div>
+</div>
          </div>
       `;
    }

@@ -56,6 +56,8 @@ export class HomeComponent {
           <input type="text" id="playerName" placeholder="ENTER YOUR NAME" aria-label="Enter your name" />
         </div>
         <button id="startGameButton" aria-label="Start Game">START GAME</button>
+        <div id="fullRoomMessage" class="hidden"></div> 
+
       </div>
       <div class="footer">
         © 2025 BOMBERMAN
@@ -73,6 +75,12 @@ export class HomeComponent {
     const cloudLeft = document.getElementById('cloudLeft');
     const cloudRight = document.getElementById('cloudRight');
     const cloudMiddle = document.getElementById('cloud');
+    this.socket.on("full", (players) => {
+      const fullRoomMessage = document.getElementById('fullRoomMessage');
+      const playerNames = players.map(player => player.name).join(', ');
+      fullRoomMessage.innerHTML = `Room is full! Players: ${playerNames}`;
+      fullRoomMessage.classList.remove('hidden'); 
+  });
     this.socket.on('connected', ()=> {
       window.location.href = '#/game'
     }

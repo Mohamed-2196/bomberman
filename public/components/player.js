@@ -31,6 +31,7 @@ export class Player {
         else if (this.down) imageSrc += 'walkingdown.gif';
         else if (this.left) imageSrc += 'walkingleft.gif';
         else if (this.right) imageSrc += 'walkingright.gif';
+        else if (this.direction =="death") imageSrc +='death.gif'
         else imageSrc += `standing${this.direction}.png`;
 
         const currentSrc = playerImage.src.split('/').pop();

@@ -1,4 +1,3 @@
-//the server
 const http = require("http");
 const fs = require("fs");
 const path = require('path');
@@ -21,6 +20,8 @@ let gameState = {
     walls: [],
     bombs: [],
     explosions: [], 
+    gameStarted: false, 
+
 };
 let users = {};
 
@@ -43,7 +44,10 @@ function handleSocketConnection(socket) {
 }
 
 function handlePlayerJoin(playerName) {
-    if (gameState.players.length >= 4) return;
+    if (gameState.players.length >= 4 || gameState.gameStarted) {
+        this.emit("full",gameState.players)
+        return
+    };
 
     if (gameState.players.length === 0) {
         gameState.walls = createWallsObject();
@@ -88,12 +92,29 @@ function handlePlayerJoin(playerName) {
     });
 
     this.emit("connected", { name: playerName, userId: this.id });
+    if (gameState.players.length === 2 && !gameState.gameStarted) {
+        startGameCountdown();
+    }
 }
+function startGameCountdown() {
+    let countdown = 20; 
+    io.emit("countdown", countdown);
 
+    countdownTimer = setInterval(() => {
+        countdown--;
+        io.emit("countdown", countdown);
+
+        if (countdown <= 0) {
+            clearInterval(countdownTimer);
+            gameState.gameStarted = true;
+            io.emit("gameStarted"); 
+        }
+    }, 1000);
+}
 function handlePlayerMovement(key) {
     const player = gameState.players.find(player => player.id === this.id);
 
-    if (player) {
+    if (player&&player.isAlive) {
         switch (key.toLowerCase()) {
             case "w":
                 player.up = true;
@@ -110,7 +131,12 @@ function handlePlayerMovement(key) {
             default:
                 break;
         }
-
+        if(player&&!player.isAlive){
+            player.up =false;
+            player.down =false;
+            player.right = false;
+            player.left = false;
+        }
         io.emit("playerMoved", { movedPlayer: player });
     }
 }
@@ -144,9 +170,16 @@ const FRAME_DURATION = 1000 / FRAME_RATE;
 
 
 setInterval(() => {
-    movePlayers(); // Update player positions
-    explodeBombs(); // Handle bomb explosions
-    io.emit("GameState", { gameState });
+    movePlayers();
+    explodeBombs();
+
+    const alivePlayers = gameState.players.filter(player => player.isAlive);
+    if (alivePlayers.length <= 1 && gameState.gameStarted) {
+        gameState.gameStarted = false;
+        io.emit("gameOver", alivePlayers.length === 1 ? alivePlayers[0].name : null);
+    } else {
+        io.emit("GameState", { gameState });
+    }
 }, FRAME_DURATION);
 function movePlayers() {
     for (const player of gameState.players) {
@@ -159,19 +192,17 @@ function movePlayers() {
         if (player.left) dx -= speed;
         if (player.right) dx += speed;
 
-        // Pass the player's ID to checkCollision
         if (!checkCollision(player.xPos + dx, player.yPos + dy, player.id)) {
             player.xPos += dx;
             player.yPos += dy;
 
-            // Check for powerup collection
             const gridX = Math.floor(player.xPos / 60);
             const gridY = Math.floor(player.yPos / 60);
             const wallIndex = gridY * 17 + gridX;
             const wall = gameState.walls[wallIndex];
             if (wall?.powerup) {
                 applyPowerup(player, wall.powerup);
-                wall.powerup = null; // Remove powerup
+                wall.powerup = null; 
             }
         }
         if (player.up) player.direction = 'up';
@@ -205,22 +236,19 @@ function checkCollision(playerX, playerY, playerId) {
     const gridX2 = Math.floor(playerRight / 60); 
     const gridY2 = Math.floor(playerBottom / 60);
 
-    // Check for walls
     for (let x = gridX1; x <= gridX2; x++) {
         for (let y = gridY1; y <= gridY2; y++) {
             const wallIndex = y * 17 + x;
             if (gameState.walls[wallIndex]?.type !== 'empty') {
-                return true; // Collision with wall
+                return true; 
             }
         }
     }
 
-    // Check for bombs
     for (const bomb of gameState.bombs) {
         const bombGridX = Math.floor(bomb.x / 60);
         const bombGridY = Math.floor(bomb.y / 60);
 
-        // Detect collision with any bomb
         if (gridX1 <= bombGridX && gridX2 >= bombGridX && gridY1 <= bombGridY && gridY2 >= bombGridY) {
             // Ignore the player's own bomb only if it is walkable
             if (bomb.ownerId === playerId && bomb.walkable) {
@@ -250,9 +278,14 @@ function handlePlayerDisconnect() {
         console.log("Connection closed");
     }
 
-    io.emit("GameState", { gameState });
+    const alivePlayers = gameState.players.filter(player => player.isAlive);
+    if (alivePlayers.length <= 1 && gameState.gameStarted) {
+        gameState.gameStarted = false; 
+        io.emit("gameOver", alivePlayers.length === 1 ? alivePlayers[0].name : null);
+    } else {
+        io.emit("GameState", { gameState });
+    }
 }
-
 function handleChatMessage(msg) {
     this.broadcast.emit('chat message', msg);
 }
@@ -296,9 +329,8 @@ function assignPlayerNumber(gameState) {
 
 function handlePlaceBomb(playerId) {
     const player = gameState.players.find(p => p.id === playerId);
-    console.log(player.bombsPlaced);
     
-    if (!player || player.bombsPlaced >= player.bombs) return;
+    if (!player || player.bombsPlaced >= player.bombs||!player.isAlive) return;
 
     const tileSize = 60;
     const bombX = Math.floor(player.xPos / tileSize) * tileSize;
@@ -314,13 +346,12 @@ function handlePlaceBomb(playerId) {
         ownerId: playerId,
         range: player.flames, 
         placedAt: Date.now(),
-        walkable: true, // Initially walkable
+        walkable: true, 
     };
 
     gameState.bombs.push(bomb);
     player.bombsPlaced++; 
 
-    // Make the bomb unwalkable after 500ms
     setTimeout(() => {
         const bombIndex = gameState.bombs.findIndex(b => b.id === bomb.id);
         if (bombIndex !== -1) {
@@ -334,10 +365,50 @@ function handlePlaceBomb(playerId) {
 function explodeBomb(bomb) {
     const tileSize = 60;
 
+    // Helper function to check if a player is in an explosion tile
+    function checkPlayerInExplosion(x, y) {
+        gameState.players.forEach(player => {
+            if (
+                player.isAlive &&
+                player.xPos >= x &&
+                player.xPos < x + tileSize &&
+                player.yPos >= y &&
+                player.yPos < y + tileSize
+            ) {
+                player.up =false;
+                player.down =false;
+                player.right = false;
+                player.left = false;
+                player.lives--;
+                if (player.lives <= 0) {
+                    player.isAlive = false; // Game Over for this player
+                    player.direction = "death"
+                    setTimeout(() => {
+                        player.direction = "death"
+                    }, 400); // Respawn after 1.7 seconds
+                    setTimeout(() => {
+                        gameState.players = gameState.players.filter(p => p.id !== player.id);
+                    }, 1700); // Respawn after 1.7 seconds
+                } else {
+                    player.isAlive = false; 
+                    player.direction = "death"
+                    setTimeout(() => {
+                        player.direction = "death"
+                    }, 400); // Respawn after 1.7 seconds
+                    setTimeout(() => {
+                        respawnPlayer(player);
+                    }, 1700); // Respawn after 1.7 seconds
+                }
+            }
+        });
+    }
+
+    // Explode in all directions
     function explodeDirection(dx, dy, config) {
         for (let i = 1; i <= config.range; i++) {
             const x = bomb.x + dx * tileSize * i;
             const y = bomb.y + dy * tileSize * i;
+
             if (x < 0 || x >= 17 * tileSize || y < 0 || y >= 17 * tileSize) break;
 
             const wallIndex = (y / tileSize) * 17 + (x / tileSize);
@@ -351,19 +422,13 @@ function explodeBomb(bomb) {
                 setTimeout(() => {
                     if (Math.random() < 0.6) {
                         wall.powerup = ['bombs', 'speed', 'flames'][Math.floor(Math.random() * 3)];
-                    }    
+                    }
                     wall.isBurned = false;
-                    io.emit("GameState", { gameState }); 
+                    io.emit("GameState", { gameState });
                 }, 1000);
-                // Spawn powerup with a chance
-                if (Math.random() < 0.6) {
-                    wall.powerup = ['bombs', 'speed', 'flames'][Math.floor(Math.random() * 3)];
-                }
-
                 break; // Stop at breakable walls
             }
 
-            // Add explosion
             gameState.explosions.push({
                 id: `explosion-${Date.now()}-${Math.random()}`,
                 x,
@@ -372,15 +437,11 @@ function explodeBomb(bomb) {
                 placedAt: Date.now(),
                 bombId: bomb.id,
             });
+
+            checkPlayerInExplosion(x, y);
         }
     }
 
-    explodeDirection(0, -1, { range: bomb.range, nearExplosion: '../images/explosion/up1.gif', farExplosion: '../images/explosion/up2.gif' });
-    explodeDirection(0, 1, { range: bomb.range, nearExplosion: '../images/explosion/down1.gif', farExplosion: '../images/explosion/down2.gif' });
-    explodeDirection(-1, 0, { range: bomb.range, nearExplosion: '../images/explosion/left1.gif', farExplosion: '../images/explosion/left2.gif' });
-    explodeDirection(1, 0, { range: bomb.range, nearExplosion: '../images/explosion/right1.gif', farExplosion: '../images/explosion/right2.gif' });
-
-    // Center explosion
     gameState.explosions.push({
         id: `explosion-${Date.now()}-${Math.random()}`,
         x: bomb.x,
@@ -390,22 +451,43 @@ function explodeBomb(bomb) {
         bombId: bomb.id,
     });
 
+    checkPlayerInExplosion(bomb.x, bomb.y);
+
+    explodeDirection(0, -1, { range: bomb.range, nearExplosion: '../images/explosion/up1.gif', farExplosion: '../images/explosion/up2.gif' });
+    explodeDirection(0, 1, { range: bomb.range, nearExplosion: '../images/explosion/down1.gif', farExplosion: '../images/explosion/down2.gif' });
+    explodeDirection(-1, 0, { range: bomb.range, nearExplosion: '../images/explosion/left1.gif', farExplosion: '../images/explosion/left2.gif' });
+    explodeDirection(1, 0, { range: bomb.range, nearExplosion: '../images/explosion/right1.gif', farExplosion: '../images/explosion/right2.gif' });
+
     setTimeout(() => {
         gameState.explosions = gameState.explosions.filter(e => e.bombId !== bomb.id);
         io.emit("GameState", { gameState });
     }, 1000);
 }
-const BOMB_LIFETIME = 1600; // Time before a bomb explodes (in milliseconds)
+const BOMB_LIFETIME = 1600; 
 function explodeBombs() {
     const now = Date.now();
-    // Filter out bombs that have expired
     gameState.bombs = gameState.bombs.filter(bomb => {
-        if (now - bomb.placedAt < BOMB_LIFETIME) return true; // Keep unexploded bombs
-        // Explode the bomb
+        if (now - bomb.placedAt < BOMB_LIFETIME) return true; 
+
         explodeBomb(bomb);
-        // Decrement the player's bombsPlaced counter
+
         const player = gameState.players.find(p => p.id === bomb.ownerId);
         if (player) player.bombsPlaced--;
-        return false; // Remove the bomb from the game state
+
+        return false; 
     });
+}
+
+function respawnPlayer(player) {
+    const spawnPoints = [
+        { x: 69, y: 69 },
+        { x: 909, y: 69 },
+        { x: 69, y: 909 },
+        { x: 909, y: 909 }
+    ];
+    const spawn = spawnPoints[player.number - 1];
+    player.xPos = spawn.x;
+    player.yPos = spawn.y;
+    player.isAlive = true;
+    player.direction = "down";
 }

@@ -1,3 +1,4 @@
+//the server
 const http = require("http");
 const fs = require("fs");
 const path = require('path');
@@ -46,6 +47,9 @@ function handlePlayerJoin(playerName) {
 
     if (gameState.players.length === 0) {
         gameState.walls = createWallsObject();
+        gameState.bombs = []
+        gameState.explosions =[]
+
     }
 
     const spawnPoints = [
@@ -83,7 +87,6 @@ function handlePlayerJoin(playerName) {
     });
 
     this.emit("connected", { name: playerName, userId: this.id });
-    console.log(`User registered: ${playerName} (ID: ${this.id})`);
 }
 
 function handlePlayerMovement(key) {
@@ -192,7 +195,6 @@ function checkCollision(playerX, playerY) {
 
 function handleIsRegistered() {
     if (!users[this.id]) {
-        console.log("Not registered");
         this.emit("notRegistered", { userId: this.id });
     } else {
         this.broadcast.emit("GameState", { gameState });
@@ -203,11 +205,8 @@ function handleIsRegistered() {
 
 function handlePlayerDisconnect() {
     if (users[this.id]) {
-        console.log(`User disconnected: ${users[this.id].name} (ID: ${this.id})`);
         delete users[this.id];
         gameState.players = gameState.players.filter(player => player.id !== this.id);
-        console.log(gameState.players);
-        console.log(users);
     } else {
         console.log("Connection closed");
     }
@@ -278,14 +277,12 @@ function handlePlaceBomb(playerId) {
     gameState.bombs.push(bomb);
     player.bombsPlaced++; 
 
-    console.log("Bomb placed:", bomb);
 
     io.emit("GameState", { gameState });
 }
 
 function explodeBomb(bomb) {
     const tileSize = 60;
-
     const explosionConfig = {
         up: {
             range: bomb.range,
@@ -313,21 +310,29 @@ function explodeBomb(bomb) {
         for (let i = 1; i <= config.range; i++) {
             const x = bomb.x + dx * tileSize * i;
             const y = bomb.y + dy * tileSize * i;
-
             if (x < 0 || x >= 17 * tileSize || y < 0 || y >= 17 * tileSize) break;
 
             const wallIndex = (y / tileSize) * 17 + (x / tileSize);
             const wall = gameState.walls[wallIndex];
 
             if (wall.type === 'wall') {
-                break; 
+                break; // Stop the explosion in this direction if it hits an unbreakable wall
             } else if (wall.type === 'block') {
                 if (wall.powerup) {
                     wall.powerup = null;
                 }
                 wall.type = 'empty';
+                wall.isBurned = true; // Mark the wall as burned
+
+                // Reset the `isBurned` flag after the burned animation duration
+                setTimeout(() => {
+                    wall.isBurned = false;
+                    io.emit("GameState", { gameState }); // Broadcast updated game state
+                }, 1000);
+
                 break;
             }
+
 
             gameState.players.forEach(player => {
                 if (
@@ -352,6 +357,7 @@ function explodeBomb(bomb) {
                 y,
                 type: explosionType,
                 placedAt: Date.now(),
+                bombId: bomb.id, // Associate the explosion with the bomb
             });
         }
     }
@@ -361,17 +367,19 @@ function explodeBomb(bomb) {
     explodeDirection(-1, 0, explosionConfig.left);
     explodeDirection(1, 0, explosionConfig.right);
 
+    // Add the center explosion
     gameState.explosions.push({
         id: `explosion-${Date.now()}-${Math.random()}`,
         x: bomb.x,
         y: bomb.y,
         type: '../images/explosion/ceterexp.gif',
         placedAt: Date.now(),
+        bombId: bomb.id, // Associate the center explosion with the bomb
     });
 
     // Remove explosions after a short delay (e.g., 1 second)
     setTimeout(() => {
-        gameState.explosions = gameState.explosions.filter(e => e.id !== bomb.id);
+        gameState.explosions = gameState.explosions.filter(e => e.bombId !== bomb.id);
         io.emit("GameState", { gameState }); // Broadcast updated game state
     }, 1000);
 }

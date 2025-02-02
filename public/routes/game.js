@@ -71,9 +71,7 @@ export class Game {
               if (['w', 'a', 's', 'd'].includes(event.key)) {
                   this.socket.emit('playerMoved', event.key);
               }
-              if ((event.code === 'Space' || event.key === 'x') ) {
-                console.log("bomb placement");
-                
+              if ((event.code === 'Space' || event.key === 'x') ) {                
                   this.socket.emit('placeBomb');
               }
           });
@@ -91,10 +89,14 @@ export class Game {
 
     handleGameState(gameState, playernumber) {
       if (!this.mapCompleted) {
-          this.renderMap(gameState);
-          this.mapCompleted = true;
-      }
-  
+        this.renderMap(gameState);
+        this.mapCompleted = true;
+    } else {
+        this.renderMap(gameState); // Update walls dynamically
+    }
+      this.renderBombs(gameState); // Ensure bombs are rendered
+      this.handleExplosions(gameState);
+
       if (this.playernumber === null) {
           this.playernumber = playernumber;
       }
@@ -124,73 +126,64 @@ export class Game {
       // Render players
       const gameContainer = document.getElementById("gameContainer");
       gameContainer.appendChild(this.playerManager.renderPlayers());
-  
-      this.handleExplosions(gameState);
+      gameState.gameState.explosions.forEach(explosion => {
+        const player = gameState.gameState.players.find(p => p.id === this.clientId);
+        if (player) {
+        if (
+            player.isAlive &&
+            player.xPos >= explosion.x &&
+            player.xPos < explosion.x + 60 &&
+            player.yPos >= explosion.y &&
+            player.yPos < explosion.y + 60
+        ) {
+            player.lives--;
+            if (player.lives <= 0) {
+            player.isAlive = false;
+            if (!player.isAlive) {
+                const playerElement = document.getElementById(`player-${player.number}`);
+                if (playerElement) {
+                playerElement.style.backgroundImage = `url(../images/whiteplayermovements/death.gif)`;
+                }
+            }
+            }
+        }
+        }
+    });
   }
 
   renderMap(gameState) {
     const boxes = document.querySelectorAll('.box');
-    const gameContainer = document.getElementById('gameContainer');
-
-    document.querySelectorAll('.bomb').forEach(bomb => bomb.remove());
-
-    gameState.gameState.bombs.forEach(bomb => {
-        const bombElement = document.createElement('div');
-        bombElement.className = 'bomb';
-        bombElement.style.position = 'absolute';
-        bombElement.style.left = `${bomb.x}px`;
-        bombElement.style.top = `${bomb.y}px`;
-        bombElement.style.width = '60px';
-        bombElement.style.height = '60px';
-        bombElement.style.backgroundImage = `url(${this.bombImage})`;
-        bombElement.style.backgroundSize = 'cover';
-        bombElement.style.zIndex = '1';
-        gameContainer.appendChild(bombElement);
-    });
-
     gameState.gameState.walls.forEach((wall, i) => {
-        const x = i % 17;
-        const y = Math.floor(i / 17);
         const box = boxes[i];
         switch (wall.type) {
             case 'wall':
                 box.style.backgroundImage = `url(${this.wallImage})`;
                 box.dataset.wall = 'true';
-                if (x % 2 === 0 && y % 2 === 0) {
-                    box.style.backgroundImage = `url(${this.greenWallImage})`;
-                }
                 break;
             case 'block':
-                box.style.backgroundImage = `url(${this.breakableWallImage})`;
-                box.dataset.wall = 'true';
-                box.dataset.breakable = 'true';
-                if (wall.powerup) {
-                    const powerup = document.createElement('div');
-                    powerup.id = `powerup-${box.id}`;
-                    powerup.style.left = `${x * 60}px`;
-                    powerup.style.top = `${y * 60}px`;
-                    powerup.style.width = '60px';
-                    powerup.style.height = '60px';
-                    powerup.style.position = 'absolute';
-                    powerup.style.zIndex = '-1';
-                    powerup.dataset.powerName = wall.powerup.type;
-                    switch (wall.powerup.type) {
-                        case 'bombs':
-                            powerup.style.backgroundImage = `url(${this.bombsImage})`;
-                            break;
-                        case 'speed':
-                            powerup.style.backgroundImage = `url(${this.speedImage})`;
-                            break;
-                        case 'flames':
-                            powerup.style.backgroundImage = `url(${this.flamesImage})`;
-                            break;
+                    box.style.backgroundImage = `url(${this.breakableWallImage})`;
+                    box.dataset.wall = 'true';
+                    box.dataset.breakable = 'true';
+                break;
+            case "empty":
+                if (wall.isBurned) { 
+                    box.style.backgroundImage = `url(../images/explosion/destruction.gif)`;
+                    setTimeout(() => {
+                        box.style.backgroundImage = `url(${this.groundImage})`;
+                        box.dataset.wall = 'false';
+                        box.dataset.breakable = 'false';
+                        wall.isBurned = false; // Reset burned state
+                    }, 1000);} else {                        
+                        box.style.backgroundImage = `url(${this.groundImage})`;
+                        box.dataset.wall = 'false';
+                        box.dataset.breakable = 'false';
+                        break;
                     }
-                    powerup.style.backgroundSize = 'cover';
-                    gameContainer.appendChild(powerup);
-                }
                 break;
             default:
                 box.style.backgroundImage = `url(${this.groundImage})`;
+                box.dataset.wall = 'false';
+                box.dataset.breakable = 'false';
                 break;
         }
     });
@@ -217,28 +210,25 @@ renderBombs(gameState) {
 }
 
 handleExplosions(gameState) {
-  const gameContainer = document.getElementById('gameContainer');
-
-  document.querySelectorAll('.explosion').forEach(explosion => explosion.remove());
-
-  gameState.gameState.explosions.forEach(explosion => {
-      const explosionElement = document.createElement('div');
-      explosionElement.className = 'explosion';
-      explosionElement.style.position = 'absolute';
-      explosionElement.style.left = `${explosion.x}px`;
-      explosionElement.style.top = `${explosion.y}px`;
-      explosionElement.style.width = '60px';
-      explosionElement.style.height = '60px';
-      explosionElement.style.backgroundImage = `url(${explosion.type})`;
-      explosionElement.style.backgroundSize = 'cover';
-      explosionElement.style.zIndex = '2';
-      gameContainer.appendChild(explosionElement);
-
-      setTimeout(() => {
-          explosionElement.remove();
-      }, 1000); 
-  });
-}
+    const gameContainer = document.getElementById('gameContainer');
+    document.querySelectorAll('.explosion').forEach(explosion => explosion.remove());
+    gameState.gameState.explosions.forEach(explosion => {
+        const explosionElement = document.createElement('div');
+        explosionElement.className = 'explosion';
+        explosionElement.style.position = 'absolute';
+        explosionElement.style.left = `${explosion.x}px`;
+        explosionElement.style.top = `${explosion.y}px`;
+        explosionElement.style.width = '60px';
+        explosionElement.style.height = '60px';
+        explosionElement.style.backgroundImage = `url(${explosion.type})`;
+        explosionElement.style.backgroundSize = 'cover';
+        explosionElement.style.zIndex = '2';
+        gameContainer.appendChild(explosionElement);
+        setTimeout(() => {
+      explosionElement.remove();
+        }, 1000);
+    });
+  }
 
     render() {
       return `

@@ -1,6 +1,5 @@
 import { io } from "/socket.io/socket.io.esm.min.js";
-
-// const socket = io("http://localhost:8080");
-const socket = io("http://192.168.100.168:8080/");
+// Update the socket URL to your Render app
+const socket = io("https://bomberman.onrender.com");
 
 export default socket;

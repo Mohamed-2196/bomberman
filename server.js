@@ -6,13 +6,22 @@ const { Server } = require('socket.io')
 
 const baseDir = path.join(__dirname, 'public')
 const httpServer = http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Allowed methods
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Allowed headers
   serveStatic(baseDir, req, res)
 })
 
 httpServer.listen(8080, () => console.log('Listening on 8080'))
 
 const io = new Server(httpServer, {
-  serveClient: true
+  serveClient: true,
+  cors: {
+    origin: "*", // Allow all origins
+    methods: ["GET", "POST"], // Allowed methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+    credentials: true // Allow credentials like cookies
+}
 })
 
 let gameState = {
@@ -193,6 +202,7 @@ setInterval(() => {
         'gameOver',
         gameState.players.length === 1 ? gameState.players[0].name : null
       )
+      resetGame() // Add this line to reset the game after game over
     }, 2000)
     clearTimeout()
   } else {
@@ -554,4 +564,17 @@ function respawnPlayer (player) {
   player.yPos = spawn.y
   player.isAlive = true
   player.direction = 'down'
+}
+
+function resetGame() {
+  gameState = {
+    players: [],
+    walls: createWallsObject(), // Recreate walls
+    bombs: [],
+    explosions: [],
+    gameStarted: false
+  };
+  
+  // Broadcast the reset game state
+  io.emit('GameState', { gameState });
 }

@@ -44,6 +44,8 @@ export class Game {
         window.location.href = '#/'
         window.location.reload()
       })
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+
       navigator.mediaDevices
         .getUserMedia({ audio: true, video: false })
         .then(stream => {
@@ -89,7 +91,7 @@ export class Game {
           return
         }
         audio.play()
-      })
+      })}
       this.socket.on('GameState', (gameState, playernumber) => {
         this.handleGameState(gameState, playernumber)
       })

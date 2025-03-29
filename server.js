@@ -11,8 +11,8 @@ const httpServer = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Allowed headers
   serveStatic(baseDir, req, res)
 })
-
-httpServer.listen(8080, () => console.log('Listening on 8080'))
+const PORT = process.env.PORT || 8080;
+httpServer.listen(PORT, () => console.log(`Listening on ${PORT}`))
 
 const io = new Server(httpServer, {
   serveClient: true,
